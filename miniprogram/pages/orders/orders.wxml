@@ -1,0 +1,103 @@
+<view class="page">
+
+  <!-- ============ 统计 ============ -->
+  <view class="stats">
+    <view class="stat" wx:for="{{stats}}" wx:key="k">
+      <text class="tiny mono faint">{{item.k}}</text>
+      <text class="mono stat-v">{{item.v}}</text>
+    </view>
+  </view>
+
+  <!-- ============ 状态筛选 ============ -->
+  <scroll-view scroll-x class="chips-scroll filter-bar" enhanced show-scrollbar="{{false}}">
+    <view class="chips-inner">
+      <view class="chip {{filter === item.id ? 'on' : ''}}" wx:for="{{states}}" wx:key="id"
+            data-id="{{item.id}}" bindtap="pickFilter">
+        <text>{{item.name}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- ============ 列表 ============ -->
+  <view class="wrap mt-16">
+    <view class="empty" wx:if="{{list.length === 0}}">
+      <text class="big">□</text>
+      <text class="empty-title">还没有订单</text>
+      <text class="empty-desc">先去工作台组合一份方案，就能在这里看到订单与物流进度。</text>
+      <view class="btn btn-primary btn-sm mt-16" bindtap="goCatalog">去模块库</view>
+    </view>
+
+    <view class="order" wx:for="{{list}}" wx:key="id">
+      <view class="row-between" data-id="{{item.id}}" bindtap="toggle">
+        <view class="row gap-6">
+          <text class="tag tag-{{item.tone}} tiny"><view class="dot"></view><text>{{item.stateName}}</text></text>
+          <text class="mono tiny">{{item.no}}</text>
+        </view>
+        <text class="tiny mono faint">{{item.dateText}}</text>
+      </view>
+
+      <view class="mt-12">
+        <text class="h4">{{item.schemeName}}</text>
+        <text class="tiny mono faint mt-8" style="display:block">{{item.kinds}} 类 / {{item.items}} 件 · {{item.contactName}} · {{item.province}}</text>
+        <view class="row row-wrap gap-6 mt-8">
+          <text class="tag tag-line tiny" wx:for="{{item.tags}}" wx:for-item="t" wx:key="*this">{{t}}</text>
+          <text class="tag tag-line tiny" wx:if="{{item.moreCount}}">等 {{item.moreCount}} 类</text>
+        </view>
+      </view>
+
+      <view class="hr"></view>
+      <view class="row-between">
+        <view class="col">
+          <text class="tiny mono faint">应付金额</text>
+          <text class="price">{{item.amountText}}</text>
+        </view>
+        <view class="row gap-6">
+          <view class="btn btn-quiet btn-sm" wx:if="{{item.canCancel}}" data-id="{{item.id}}" catchtap="cancel">取消</view>
+          <view class="btn btn-primary btn-sm" wx:if="{{item.canPay}}" data-id="{{item.id}}" catchtap="pay">去支付</view>
+          <view class="btn btn-primary btn-sm" wx:if="{{item.canReceive}}" data-id="{{item.id}}" catchtap="receive">确认收货</view>
+          <view class="btn btn-ghost btn-sm" wx:if="{{item.canRebuy}}" data-id="{{item.id}}" catchtap="rebuy">再次购买</view>
+        </view>
+      </view>
+
+      <!-- 展开详情 -->
+      <block wx:if="{{expanded === item.id}}">
+        <view class="hr"></view>
+
+        <text class="tiny mono faint">物流时间线</text>
+        <view class="mt-12">
+          <view class="tl" wx:for="{{item.timeline}}" wx:key="at">
+            <view class="tl-dot {{index === 0 ? 'on' : ''}}"></view>
+            <view class="flex1">
+              <text class="small" style="font-weight:{{index === 0 ? '600' : '400'}}">{{item.name}}</text>
+              <text class="tiny mono faint" style="display:block">{{item.at}}</text>
+              <text class="tiny muted" wx:if="{{item.note}}" style="display:block;margin-top:4rpx">{{item.note}}</text>
+            </view>
+          </view>
+        </view>
+
+        <block wx:if="{{item.tracking}}">
+          <view class="hr"></view>
+          <text class="tiny mono faint">物流</text>
+          <view class="row-between mt-8">
+            <text class="small">{{item.carrier}} · <text class="mono">{{item.tracking}}</text></text>
+            <view class="btn btn-ghost btn-sm" data-t="{{item.tracking}}" catchtap="copyTracking">复制</view>
+          </view>
+        </block>
+
+        <block wx:if="{{item.invoiceText}}">
+          <view class="hr"></view>
+          <text class="tiny mono faint">发票</text>
+          <text class="small mt-8" style="display:block">{{item.invoiceText}}</text>
+        </block>
+
+        <block wx:if="{{item.note}}">
+          <view class="hr"></view>
+          <text class="tiny mono faint">订单备注</text>
+          <text class="small muted mt-8" style="display:block">{{item.note}}</text>
+        </block>
+      </block>
+    </view>
+  </view>
+
+  <view style="height:40rpx"></view>
+</view>

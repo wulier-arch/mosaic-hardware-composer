@@ -1,0 +1,207 @@
+<view class="page">
+
+  <!-- ============ 步骤条 ============ -->
+  <view class="steps">
+    <view class="step {{step >= 1 ? 'on' : ''}}"><view class="sdot">1</view><text class="slabel">填单</text></view>
+    <view class="sline"></view>
+    <view class="step {{step >= 2 ? 'on' : ''}}"><view class="sdot">2</view><text class="slabel">支付</text></view>
+    <view class="sline"></view>
+    <view class="step {{step >= 3 ? 'on' : ''}}"><view class="sdot">3</view><text class="slabel">完成</text></view>
+  </view>
+
+  <!-- ==================== STEP 1 填单 ==================== -->
+  <block wx:if="{{step === 1}}">
+
+    <view class="wrap mt-16">
+      <view class="card">
+        <text class="tiny mono faint">收货信息</text>
+        <view class="mt-12">
+
+          <view class="field {{errs.name ? 'field-bad' : ''}}">
+            <text class="field-label">收货人 <text class="req">*</text></text>
+            <input class="input" value="{{f.name}}" data-k="name" bindinput="onInput" placeholder="请输入真实姓名" placeholder-class="ph" />
+            <text class="field-err" wx:if="{{errs.name}}">{{errs.name}}</text>
+          </view>
+
+          <view class="field {{errs.phone ? 'field-bad' : ''}}">
+            <text class="field-label">手机号码 <text class="req">*</text></text>
+            <input class="input" type="number" maxlength="11" value="{{f.phone}}" data-k="phone" bindinput="onInput" placeholder="11 位手机号" placeholder-class="ph" />
+            <text class="field-err" wx:if="{{errs.phone}}">{{errs.phone}}</text>
+          </view>
+
+          <view class="field {{errs.province ? 'field-bad' : ''}}">
+            <text class="field-label">所在省份 / 直辖市 <text class="req">*</text></text>
+            <picker mode="selector" range="{{provinces}}" bindchange="onProvince">
+              <view class="picker-box">
+                <text class="{{f.province ? '' : 'ph'}}">{{f.province || '请选择'}}</text>
+                <text class="faint">▾</text>
+              </view>
+            </picker>
+            <text class="field-err" wx:if="{{errs.province}}">{{errs.province}}</text>
+          </view>
+
+          <view class="field {{errs.city ? 'field-bad' : ''}}">
+            <text class="field-label">城市 / 区县 <text class="req">*</text></text>
+            <input class="input" value="{{f.city}}" data-k="city" bindinput="onInput" placeholder="如：深圳市南山区" placeholder-class="ph" />
+            <text class="field-err" wx:if="{{errs.city}}">{{errs.city}}</text>
+          </view>
+
+          <view class="field {{errs.addr ? 'field-bad' : ''}}">
+            <text class="field-label">详细地址 <text class="req">*</text></text>
+            <input class="input" value="{{f.addr}}" data-k="addr" bindinput="onInput" placeholder="街道、门牌号、楼层、房间号" placeholder-class="ph" />
+            <text class="field-err" wx:if="{{errs.addr}}">{{errs.addr}}</text>
+          </view>
+
+          <view class="field {{errs.email ? 'field-bad' : ''}}">
+            <text class="field-label">电子邮箱（选填）</text>
+            <input class="input" value="{{f.email}}" data-k="email" bindinput="onInput" placeholder="用于接收订单与发货通知" placeholder-class="ph" />
+            <text class="field-err" wx:if="{{errs.email}}">{{errs.email}}</text>
+          </view>
+
+          <view class="field">
+            <text class="field-label">订单备注（选填）</text>
+            <textarea class="textarea" value="{{f.note}}" data-k="note" bindinput="onInput" placeholder="如：需要预烧录固件、指定接口朝向等" placeholder-class="ph" />
+          </view>
+
+        </view>
+      </view>
+    </view>
+
+    <view class="wrap mt-16">
+      <view class="card">
+        <view class="row-between" bindtap="toggleInvoice">
+          <text class="tiny mono faint">发票信息</text>
+          <view class="check">
+            <view class="box {{f.needInvoice ? 'on' : ''}}"><text class="tick" wx:if="{{f.needInvoice}}">✓</text></view>
+            <text class="small">需要发票</text>
+          </view>
+        </view>
+        <block wx:if="{{f.needInvoice}}">
+          <view class="hr"></view>
+          <view class="field {{errs.invTitle ? 'field-bad' : ''}}">
+            <text class="field-label">发票抬头 <text class="req">*</text></text>
+            <input class="input" value="{{f.invTitle}}" data-k="invTitle" bindinput="onInput" placeholder="个人或公司全称" placeholder-class="ph" />
+            <text class="field-err" wx:if="{{errs.invTitle}}">{{errs.invTitle}}</text>
+          </view>
+          <view class="field">
+            <text class="field-label">纳税人识别号（选填）</text>
+            <input class="input" value="{{f.invTax}}" data-k="invTax" bindinput="onInput" placeholder="公司开票建议填写" placeholder-class="ph" />
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <view class="wrap mt-16">
+      <view class="card">
+        <text class="tiny mono faint">支付方式</text>
+        <view class="mt-12">
+          <view class="ch-card {{channel === item.id ? 'on' : ''}}" wx:for="{{channels}}" wx:key="id" data-id="{{item.id}}" bindtap="pickChannel">
+            <view class="flex1">
+              <view class="row gap-6">
+                <text class="h4">{{item.name}}</text>
+                <text class="tag {{item.id === 'wechat' ? 'tag-ok' : 'tag-line'}} tiny">{{item.tag}}</text>
+              </view>
+              <text class="tiny faint mt-8" style="display:block;line-height:1.55">{{item.desc}}</text>
+            </view>
+            <view class="radio {{channel === item.id ? 'on' : ''}}"></view>
+          </view>
+        </view>
+        <view class="check mt-16" bindtap="toggleAgree">
+          <view class="box {{agree ? 'on' : ''}}"><text class="tick" wx:if="{{agree}}">✓</text></view>
+          <text class="small muted">我已阅读并同意《平台服务条款》《硬件模块退换货政策》，并确认方案清单与收货信息无误</text>
+        </view>
+        <text class="field-err" wx:if="{{errs.agree}}">{{errs.agree}}</text>
+      </view>
+    </view>
+
+    <view class="wrap mt-16">
+      <view class="card">
+        <text class="tiny mono faint">订单摘要</text>
+        <view class="mt-12">
+          <view class="bom-row" wx:for="{{lines}}" wx:key="id">
+            <text class="small flex1 bom-name">{{item.name}} <text class="mono faint">×{{item.qty}}</text></text>
+            <text class="mono small">{{item.sumText}}</text>
+          </view>
+          <view class="hr"></view>
+          <view class="cost-line"><text class="small muted flex1">模块小计</text><text class="mono small">{{cost.subtotalText}}</text></view>
+          <view class="cost-line" wx:if="{{cost.hasAssembly}}"><text class="small muted flex1">代装配服务</text><text class="mono small">{{cost.assemblyText}}</text></view>
+          <view class="cost-line" wx:if="{{cost.hasRush}}"><text class="small muted flex1">加急处理</text><text class="mono small">{{cost.rushText}}</text></view>
+          <view class="cost-line"><text class="small muted flex1">运费</text><text class="mono small">{{shipText}}</text></view>
+          <text class="tiny mono faint" wx:if="{{cost.freeGap}}" style="display:block;text-align:right">{{cost.freeGap}}</text>
+          <view class="hr"></view>
+          <view class="row-between">
+            <text class="h4">应付合计</text>
+            <text class="price price-lg">{{totalText}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view style="height:200rpx"></view>
+    <view class="actionbar">
+      <view class="btn btn-primary btn-block" bindtap="submit">提交订单并支付</view>
+    </view>
+  </block>
+
+  <!-- ==================== STEP 2 支付 ==================== -->
+  <block wx:if="{{step === 2}}">
+    <view class="wrap mt-16">
+      <view class="card">
+        <view class="row-between">
+          <text class="tiny mono faint">订单号</text>
+          <text class="mono small">{{order.no}}</text>
+        </view>
+        <view class="hr"></view>
+        <view class="row-between">
+          <text class="h4">应付金额</text>
+          <text class="price price-lg">{{amountText}}</text>
+        </view>
+        <view class="row-between mt-12">
+          <text class="small muted">支付剩余时间</text>
+          <text class="mono countdown">{{countdown}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="wrap mt-16">
+      <view class="card">
+        <text class="tiny mono faint">支付说明</text>
+        <text class="small muted mt-12" style="display:block;line-height:1.75">
+          {{channel === 'wechat' ? '点击下方按钮将拉起微信支付。真实环境中，前端调用 wx.requestPayment 前，需先由服务端向微信支付下单接口换取 prepay_id 并签名，支付结果由服务端接收微信异步通知后落库。' : '当前为演示模式，点击后直接把订单置为已付款，用于验证「下单 → 付款 → 后台履约」完整链路，不产生真实资金往来。'}}
+        </text>
+        <view class="btn btn-primary btn-block mt-16" bindtap="pay">{{channel === 'wechat' ? '立即支付' : '模拟支付成功'}}</view>
+        <view class="btn btn-quiet btn-block mt-8" bindtap="cancelOrder">取消订单</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ==================== STEP 3 成功 ==================== -->
+  <block wx:if="{{step === 3}}">
+    <view class="wrap mt-16">
+      <view class="card">
+        <view class="row gap-12">
+          <view class="okmark">✓</view>
+          <view class="flex1">
+            <text class="h2 serif">支付已完成</text>
+            <text class="small muted mt-8" style="display:block;line-height:1.6">订单已进入「已付款」状态，后台可立即看到并开始备货。</text>
+          </view>
+        </view>
+        <view class="hr"></view>
+        <view class="cost-line"><text class="small muted flex1">订单号</text><text class="mono small">{{order.no}}</text></view>
+        <view class="cost-line"><text class="small muted flex1">实付金额</text><text class="mono small">{{amountText}}</text></view>
+        <view class="cost-line"><text class="small muted flex1">商品件数</text><text class="mono small">{{order.cost.itemCount}} 件</text></view>
+        <view class="btn btn-primary btn-block mt-16" bindtap="goOrders">查看我的订单</view>
+        <view class="btn btn-ghost btn-block mt-8" bindtap="goIndex">返回首页</view>
+      </view>
+    </view>
+    <view class="wrap mt-16">
+      <view class="card card-flat">
+        <text class="tiny mono faint">关于这一步</text>
+        <text class="small muted mt-8" style="display:block;line-height:1.7">
+          这是演示环境的支付结果。接入真实微信支付时，前端只需轮询服务端订单状态，由服务端在收到微信支付异步通知并验签后更新订单。
+        </text>
+      </view>
+    </view>
+  </block>
+
+</view>

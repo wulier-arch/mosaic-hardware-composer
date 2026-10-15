@@ -1,0 +1,117 @@
+<view class="page">
+
+  <!-- ============ 头部 ============ -->
+  <view class="hero">
+    <view class="brand">
+      <view class="mark">
+        <view class="sq sq-a"></view><view class="sq sq-b"></view>
+        <view class="sq sq-c"></view><view class="sq sq-d"></view>
+      </view>
+      <view class="col">
+        <text class="brand-name">MOSAIC 拼造</text>
+        <text class="brand-sub mono">HARDWARE COMPOSER</text>
+      </view>
+    </view>
+    <text class="muted small mt-16" style="display:block;line-height:1.7">像拼图一样，造出你的硬件。在线选择并组合开发板、传感器、电机等硬件模块，实时校验兼容性，生成可下单的方案清单。</text>
+  </view>
+
+  <!-- ============ 我的方案 ============ -->
+  <view class="wrap mt-16">
+    <view class="card" bindtap="goBuilder">
+      <view class="row-between">
+        <text class="tiny mono faint">我的方案</text>
+        <text class="tag tag-{{verdictTone}} tiny">{{verdictText}}</text>
+      </view>
+      <text class="h3 mt-12">{{schemeName}}</text>
+      <view class="row-between mt-12">
+        <text class="tiny mono faint">{{schemeKinds}} 类 / {{schemeItems}} 件</text>
+        <text class="price">{{schemeTotal}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 数据概览 ============ -->
+  <view class="wrap mt-16">
+    <view class="grid2">
+      <view class="mini-card" bindtap="goOrders">
+        <text class="tiny mono faint">订单数</text>
+        <text class="mono mini-v">{{orders}}</text>
+      </view>
+      <view class="mini-card" bindtap="goOrders">
+        <text class="tiny mono faint">累计支付</text>
+        <text class="mono mini-v">{{paidAmount}}</text>
+      </view>
+      <view class="mini-card">
+        <text class="tiny mono faint">埋点条数</text>
+        <text class="mono mini-v">{{heatEvents}}</text>
+      </view>
+      <view class="mini-card">
+        <text class="tiny mono faint">行为模块</text>
+        <text class="mono mini-v">{{heatModules}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 本机选型行为 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <view class="row-between">
+        <text class="tiny mono faint">本机选型行为（影响热度排序）</text>
+        <view class="btn btn-quiet btn-sm" bindtap="clearHeat">清空</view>
+      </view>
+      <view class="mt-12" wx:if="{{topHeat.length > 0}}">
+        <view class="beh-row" wx:for="{{topHeat}}" wx:key="id">
+          <text class="small flex1 beh-name">{{item.name}}</text>
+          <view class="row gap-6">
+            <text class="tag tag-line tiny">浏览 {{item.view}}</text>
+            <text class="tag tag-line tiny">加购 {{item.add}}</text>
+            <text class="tag tag-accent tiny">{{item.score}}</text>
+          </view>
+        </view>
+      </view>
+      <text class="small faint" wx:else>还没有行为记录。在模块库浏览或加购模块后，这里会记录行为并影响选型热度排序。</text>
+      <view class="hr"></view>
+      <text class="tiny mono faint" style="display:block;line-height:1.7">热度 = 基线需求指数 × 0.7 + 本机选型加权 × 0.3。本机加权中，浏览记 1 分、加购记 5 分、下单记 20 分。</text>
+    </view>
+  </view>
+
+  <!-- ============ 功能一览 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <text class="tiny mono faint">核心功能模块</text>
+      <view class="mt-12">
+        <view class="feat-row" wx:for="{{features}}" wx:key="t">
+          <text class="small feat-t">{{item.t}}</text>
+          <text class="tiny muted feat-d">{{item.d}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 技术说明 ============ -->
+  <view class="wrap mt-16">
+    <view class="card card-ink">
+      <text class="tiny mono" style="color:var(--accent)">技术说明</text>
+      <view class="mt-12">
+        <view class="tech-row" wx:for="{{tech}}" wx:key="k">
+          <text class="tiny" style="color:rgba(242,241,238,.5)">{{item.k}}</text>
+          <text class="mono small" style="color:#f2f1ee">{{item.v}}</text>
+        </view>
+      </view>
+      <text class="tiny mt-12" style="color:rgba(242,241,238,.6);display:block;line-height:1.75">
+        模块数据与兼容性校验引擎均为小程序端本地实现，无需服务端即可完整体验选型与校验链路。下单、付款与订单数据存放在本地 Storage，用于演示完整业务流程。
+      </text>
+    </view>
+  </view>
+
+  <!-- ============ 危险操作 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <text class="tiny mono faint">演示数据</text>
+      <text class="small muted mt-8" style="display:block;line-height:1.7">当前所有数据（方案、订单、库存、埋点）都保存在本机，换设备不会同步。</text>
+      <view class="btn btn-danger btn-block mt-16" bindtap="resetAll">重置演示数据</view>
+    </view>
+  </view>
+
+  <view style="height:60rpx"></view>
+</view>

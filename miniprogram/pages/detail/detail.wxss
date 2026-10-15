@@ -1,0 +1,40 @@
+.hero {
+  height: 320rpx; background: var(--bg-sunken); border-bottom: 2rpx solid var(--line);
+  display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+}
+.hero-grid {
+  position: absolute; inset: 0; opacity: .5;
+  background-image: linear-gradient(var(--line) 2rpx, transparent 2rpx),
+                    linear-gradient(90deg, var(--line) 2rpx, transparent 2rpx);
+  background-size: 40rpx 40rpx;
+}
+.hero-ico {
+  position: relative; font-size: 30rpx; color: var(--accent-ink);
+  border: 2rpx solid rgba(167,139,250,.5); background: var(--accent-soft);
+  padding: 26rpx 34rpx; border-radius: var(--radius); letter-spacing: 2rpx;
+}
+.hero-badges { position: absolute; left: 24rpx; right: 24rpx; top: 24rpx; display: flex; justify-content: space-between; }
+
+.metrics { display: flex; background: var(--bg-raised); border-bottom: 2rpx solid var(--line); }
+.metric { flex: 1; padding: 26rpx 24rpx; border-right: 2rpx solid var(--line); }
+.metric:last-child { border-right: none; }
+.metric-v { display: block; font-size: 34rpx; font-weight: 700; margin-top: 8rpx; }
+.up { color: #b3261e; }
+.down { color: #1a7f4b; }
+.flat { color: var(--faint); }
+
+.qty-big { display: flex; align-items: center; border: 2rpx solid var(--line-mid); border-radius: var(--radius); }
+.qty-big .qty-btn { width: 68rpx; height: 68rpx; display: flex; align-items: center; justify-content: center; font-size: 32rpx; color: var(--muted); }
+.qty-big .qty-n { min-width: 68rpx; text-align: center; font-size: 30rpx; }
+
+.kv { display: flex; align-items: flex-start; gap: 20rpx; padding: 16rpx 0; border-bottom: 2rpx solid var(--line); }
+.kv:last-child { border-bottom: none; }
+.kv-k { width: 240rpx; flex: none; font-size: 25rpx; color: var(--faint); }
+.kv-v { flex: 1; font-size: 25rpx; line-height: 1.55; word-break: break-all; }
+
+.rel-card {
+  display: flex; align-items: center; gap: 20rpx; padding: 24rpx 26rpx;
+  background: var(--bg-raised); border: 2rpx solid var(--line);
+  border-radius: var(--radius-lg); margin-bottom: 16rpx;
+}
+.rel-name { display: block; font-weight: 500; }

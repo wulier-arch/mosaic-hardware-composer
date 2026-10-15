@@ -1,0 +1,224 @@
+<view class="page builder">
+
+  <!-- ============ 方案头 ============ -->
+  <view class="wrap head">
+    <view class="row-between">
+      <view class="flex1" bindtap="rename">
+        <text class="tiny mono faint">方案名称（点击重命名）</text>
+        <text class="h2 mt-8">{{schemeName}}</text>
+      </view>
+      <view class="btn btn-quiet btn-sm" bindtap="clearAll">清空</view>
+    </view>
+    <text class="tiny mono faint mt-8">{{summary.kinds}} 类 / {{summary.items}} 件 · 难度 {{summary.difficulty}}/5 · 约 {{summary.hours}} 小时</text>
+  </view>
+
+  <!-- ============ 结论横幅 ============ -->
+  <view class="wrap">
+    <view class="verdict {{verdict.cls}}">
+      <view class="row gap-8">
+        <text class="verdict-ico">{{verdict.ico}}</text>
+        <text class="h3">{{verdict.title}}</text>
+      </view>
+      <text class="small mt-8" style="display:block;line-height:1.65;color:var(--muted)">{{verdict.body}}</text>
+    </view>
+  </view>
+
+  <!-- ============ 方案分区 ============ -->
+  <view class="wrap mt-16">
+    <view class="zone" wx:for="{{zones}}" wx:key="id">
+      <view class="zone-head">
+        <view class="flex1">
+          <text class="h4">{{item.name}}</text>
+          <text class="tiny mono faint zone-hint">{{item.hint}}</text>
+        </view>
+        <text class="tag {{item.count ? 'tag-accent' : 'tag-line'}} tiny">{{item.count ? item.count + ' 件' : '未选'}}</text>
+      </view>
+
+      <view class="zone-empty" wx:if="{{item.items.length === 0}}">
+        <text class="small faint">{{item.id === 'board' ? '还没有主控。先选一块开发板，它是兼容性判断的基准。' : '尚未添加模块'}}</text>
+      </view>
+
+      <view class="line" wx:for="{{item.items}}" wx:for-item="it" wx:key="id">
+        <view class="flex1" data-id="{{it.id}}" bindtap="goDetail">
+          <text class="line-name">{{it.name}}</text>
+          <text class="tiny mono faint">{{it.brand}} · {{it.priceText}}{{it.driver ? ' · 需驱动' : ''}}{{it.outOfStock ? ' · 缺货' : ''}}</text>
+        </view>
+        <view class="qty">
+          <view class="qty-btn" data-id="{{it.id}}" catchtap="dec">−</view>
+          <text class="qty-n mono">{{it.qty}}</text>
+          <view class="qty-btn" data-id="{{it.id}}" catchtap="inc">+</view>
+        </view>
+        <text class="mono line-sum">{{it.sumText}}</text>
+        <view class="qty-btn del" data-id="{{it.id}}" catchtap="remove">✕</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 兼容性报告 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <view class="row-between">
+        <text class="tiny mono faint">兼容性报告</text>
+        <text class="tiny mono faint">{{summary.errors}} 冲突 / {{summary.warnings}} 提醒</text>
+      </view>
+      <view class="col gap-6 mt-12">
+        <view class="issue {{item.level}}" wx:for="{{issues}}" wx:key="rule">
+          <text class="issue-ico">{{item.ico}}</text>
+          <view class="flex1">
+            <text class="issue-title">{{item.title}} <text class="issue-code">{{item.rule}}</text></text>
+            <text class="issue-body">{{item.body}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 资源占用 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <view class="row-between">
+        <text class="tiny mono faint">资源占用</text>
+        <text class="tiny mono faint">{{summary.kinds ? '' : '未选主控'}}</text>
+      </view>
+      <view class="mt-12" wx:if="{{resRows.length > 0}}">
+        <view class="meter" wx:for="{{resRows}}" wx:key="label">
+          <view class="meter-top">
+            <text>{{item.label}}</text>
+            <text class="val" style="color:{{item.over ? 'var(--danger)' : 'var(--ink)'}}">{{item.need}} / {{item.cap}} {{item.unit}}</text>
+          </view>
+          <view class="meter-bar {{item.over ? 'err' : (item.pct > 75 ? 'warn' : '')}}">
+            <view class="fill" style="width:{{item.pct}}%"></view>
+          </view>
+        </view>
+      </view>
+      <text class="small faint" wx:else>选择主控后显示引脚与总线占用</text>
+    </view>
+  </view>
+
+  <!-- ============ 功耗预算 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <view class="row-between">
+        <text class="tiny mono faint">功耗与供电预算</text>
+        <text class="tiny mono faint">按峰值电流估算</text>
+      </view>
+      <view class="mt-12">
+        <view class="meter" wx:for="{{pwrRows}}" wx:key="label">
+          <view class="meter-top">
+            <text>{{item.label}}</text>
+            <text class="val" style="color:{{item.over ? 'var(--danger)' : 'var(--ink)'}}">{{item.needText}} / {{item.capText}} A</text>
+          </view>
+          <view class="meter-bar {{item.over ? 'err' : (item.pct > 75 ? 'warn' : '')}}">
+            <view class="fill" style="width:{{item.pct}}%"></view>
+          </view>
+        </view>
+        <view class="row row-wrap gap-6 mt-8">
+          <text class="tag tag-line tiny" wx:for="{{rails}}" wx:key="text">{{item.text}}</text>
+        </view>
+      </view>
+      <view class="issue mt-16" style="background:var(--bg-sunken);border-color:transparent">
+        <text class="issue-ico" style="color:var(--accent-ink)">i</text>
+        <view class="flex1">
+          <text class="issue-title">提示</text>
+          <text class="issue-body">舵机、电机、推杆等执行器的启动峰值远高于均值，务必独立供电并与主控共地。</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 附加服务 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <text class="tiny mono faint">附加服务</text>
+      <view class="col gap-6 mt-12">
+        <view class="check" data-k="assembly" bindtap="toggleService">
+          <view class="box {{service.assembly ? 'on' : ''}}"><text class="tick" wx:if="{{service.assembly}}">✓</text></view>
+          <view class="flex1">
+            <text class="small">代装配服务 <text class="mono tiny faint">+¥39.00</text></text>
+            <text class="tiny faint" style="display:block;margin-top:4rpx">平台按方案焊接、烧录固件并整机通电测试后发货</text>
+          </view>
+        </view>
+        <view class="check" data-k="rush" bindtap="toggleService">
+          <view class="box {{service.rush ? 'on' : ''}}"><text class="tick" wx:if="{{service.rush}}">✓</text></view>
+          <view class="flex1">
+            <text class="small">加急处理 <text class="mono tiny faint">+15% 货值</text></text>
+            <text class="tiny faint" style="display:block;margin-top:4rpx">1–2 天发货（常规 3–5 天）</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 成本汇总 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <view class="row-between">
+        <text class="tiny mono faint">成本汇总</text>
+        <text class="tag tag-accent tiny">{{cost.totalText}}</text>
+      </view>
+      <view class="mt-12">
+        <view class="cost-line" wx:for="{{cost.lines}}" wx:key="id">
+          <text class="small flex1 cost-name">{{item.name}} <text class="mono faint">×{{item.qty}}</text></text>
+          <text class="mono small">{{item.sumText}}</text>
+        </view>
+        <view class="hr"></view>
+        <view class="cost-line"><text class="small muted flex1">模块小计</text><text class="mono small">{{cost.subtotalText}}</text></view>
+        <view class="cost-line" wx:if="{{service.assembly}}"><text class="small muted flex1">代装配服务</text><text class="mono small">{{cost.assemblyText}}</text></view>
+        <view class="cost-line" wx:if="{{service.rush}}"><text class="small muted flex1">加急处理</text><text class="mono small">{{cost.rushText}}</text></view>
+        <view class="cost-line"><text class="small muted flex1">运费</text><text class="mono small">{{cost.shippingText}}</text></view>
+        <view class="hr"></view>
+        <view class="row-between">
+          <text class="h4">应付合计</text>
+          <text class="price price-lg">{{cost.totalText}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-space"></view>
+
+  <!-- ============ 底部固定操作栏 ============ -->
+  <view class="actionbar">
+    <view class="btn btn-ghost btn-flex" bindtap="openPicker">+ 添加模块</view>
+    <view class="btn {{summary.canCheckout ? 'btn-primary' : 'btn-primary btn-disabled'}} btn-flex" bindtap="goCheckout">{{summary.btnText}}</view>
+  </view>
+
+  <!-- ============ 添加模块抽屉 ============ -->
+  <view class="mask" wx:if="{{showPicker}}" bindtap="closePicker"></view>
+  <view class="sheet {{showPicker ? 'open' : ''}}" catchtap="noop">
+    <view class="sheet-head">
+      <text class="h4">添加模块</text>
+      <view class="btn btn-quiet btn-sm" bindtap="closePicker">完成</view>
+    </view>
+
+    <view class="sheet-search">
+      <input value="{{pickQ}}" placeholder="搜索模块名 / 品牌 / 标签" placeholder-class="ph" bindinput="onPickQ" />
+    </view>
+
+    <scroll-view scroll-x class="chips-scroll" enhanced show-scrollbar="{{false}}">
+      <view class="chips-inner">
+        <view class="chip {{pickCat === item.id ? 'on' : ''}}" wx:for="{{pickChips}}" wx:key="id"
+              data-id="{{item.id}}" bindtap="pickCatTap">
+          <text>{{item.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <scroll-view scroll-y class="sheet-list" enhanced show-scrollbar="{{false}}">
+      <view class="pick-row" wx:for="{{pickList}}" wx:key="id" data-id="{{item.id}}" bindtap="pickAdd">
+        <view class="pick-ico mono tiny">{{item.bus || '—'}}</view>
+        <view class="flex1">
+          <text class="small pick-name">{{item.name}}</text>
+          <text class="tiny mono faint">{{item.priceText}} · {{item.stockText}} · {{item.catName}}</text>
+        </view>
+        <view class="btn {{item.qty ? 'btn-accent' : 'btn-ghost'}} btn-sm">{{item.qty ? '×' + item.qty : '+'}}</view>
+      </view>
+      <view class="empty" wx:if="{{pickList.length === 0}}">
+        <text class="empty-title">没有匹配的模块</text>
+        <text class="empty-desc">换个关键词，或切换到其他分类。</text>
+      </view>
+      <view class="sheet-pad"></view>
+    </scroll-view>
+  </view>
+
+</view>

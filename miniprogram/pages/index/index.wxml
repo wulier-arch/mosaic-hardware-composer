@@ -1,0 +1,188 @@
+<view class="page">
+
+  <!-- ============ HERO ============ -->
+  <view class="wrap hero">
+    <view class="brand">
+      <view class="mark">
+        <view class="sq sq-a"></view><view class="sq sq-b"></view>
+        <view class="sq sq-c"></view><view class="sq sq-d"></view>
+      </view>
+      <view class="col">
+        <text class="brand-name">MOSAIC 拼造</text>
+        <text class="brand-sub mono">HARDWARE COMPOSER</text>
+      </view>
+    </view>
+
+    <text class="kicker mt-24">在线选型 · 实时校验 · 一键下单</text>
+    <text class="h1 serif mt-12">把模块，拼成你想要的硬件。</text>
+    <text class="muted mt-12 hero-lead">86 个开发板、传感器、电机与结构件，9 条兼容性规则实时把关。在花钱之前，就知道这套方案能不能跑起来。</text>
+
+    <view class="row gap-8 mt-24">
+      <view class="btn btn-primary btn-flex" bindtap="goBuilder">开始选型</view>
+      <view class="btn btn-ghost btn-flex" bindtap="goCatalog">浏览模块库</view>
+    </view>
+
+    <view class="row row-wrap gap-6 mt-16">
+      <view class="tag tag-accent"><view class="dot"></view><text>9 条校验规则</text></view>
+      <view class="tag tag-line"><text>微信支付已预留</text></view>
+      <view class="tag tag-line"><text>零构建 · 纯前端</text></view>
+    </view>
+  </view>
+
+  <!-- ============ 数据条 ============ -->
+  <view class="statbar">
+    <view class="stat" wx:for="{{stats}}" wx:key="k">
+      <text class="stat-k mono">{{item.k}}</text>
+      <text class="stat-v mono">{{item.v}}</text>
+    </view>
+  </view>
+
+  <!-- ============ 当前方案 ============ -->
+  <view class="wrap mt-16" wx:if="{{schemeCount > 0}}">
+    <view class="card card-flat row-between" bindtap="goBuilder">
+      <view class="col">
+        <text class="tiny mono faint">当前方案</text>
+        <text class="h4 mt-8">{{schemeCount}} 件模块 · {{schemeTotal}}</text>
+      </view>
+      <text class="tag tag-accent"><text>去工作台 →</text></text>
+    </view>
+  </view>
+
+  <!-- ============ 01 分类 ============ -->
+  <view class="sec wrap sec-line">
+    <view class="row gap-12 mb-16">
+      <text class="sec-num">01</text>
+      <text class="h2">八大分类</text>
+    </view>
+    <text class="muted small mb-16">每一类都带接口、供电与算力标注，选中即可加入方案。</text>
+
+    <view class="cat-grid">
+      <view class="cat-card" wx:for="{{categories}}" wx:key="id" data-id="{{item.id}}" bindtap="onCatTap">
+        <view class="row-between">
+          <text class="cat-idx mono">{{item.count}}</text>
+          <text class="tiny mono faint">款</text>
+        </view>
+        <text class="h4 mt-12">{{item.name}}</text>
+        <text class="tiny mono faint cat-en">{{item.en}}</text>
+        <text class="small muted mt-8 cat-desc">{{item.desc}}</text>
+        <view class="hr"></view>
+        <view class="row-between">
+          <text class="tiny mono">起 {{item.minPrice}}</text>
+          <text class="tiny mono" style="color:var(--accent-ink)">进入 →</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 02 选型热度 ============ -->
+  <view class="sec wrap sec-line">
+    <view class="row gap-12">
+      <text class="sec-num">02</text>
+      <text class="h2">选型热度（示意）</text>
+    </view>
+    <text class="muted small mt-8 mb-16">按 7 日 / 30 日热度指数排序，含环比涨跌。指数由平台需求基线与本机真实选型行为加权合成。</text>
+
+    <view class="row gap-8 mb-16">
+      <view class="seg">
+        <view class="seg-item {{heatRange === '7d' ? 'on' : ''}}" data-r="7d" bindtap="onRange">近 7 日</view>
+        <view class="seg-item {{heatRange === '30d' ? 'on' : ''}}" data-r="30d" bindtap="onRange">近 30 日</view>
+      </view>
+      <picker mode="selector" range="{{catOptions}}" range-key="name" bindchange="onHeatCat">
+        <view class="tag tag-line"><text>{{heatCatName}} ▾</text></view>
+      </picker>
+    </view>
+
+    <view class="card card-pad-sm">
+      <view class="row-between heat-head">
+        <text class="tiny mono faint">TOP 8 · 热度指数</text>
+        <text class="tiny mono faint">{{heatUpdated}}</text>
+      </view>
+
+      <view class="heat-row" wx:for="{{heatList}}" wx:key="id" data-id="{{item.id}}" bindtap="onHeatTap">
+        <text class="heat-rank mono {{item.rank <= 3 ? 'top' : ''}}">{{item.rankText}}</text>
+        <view class="flex1">
+          <view class="row gap-6">
+            <text class="heat-name">{{item.name}}</text>
+            <text class="tag tag-accent tiny" wx:if="{{item.weighted}}">本机</text>
+          </view>
+          <text class="tiny mono faint">{{item.catName}} · {{item.brand}}</text>
+          <view class="heat-bar"><view class="heat-fill" style="width:{{item.barWidth}}%"></view></view>
+        </view>
+        <view class="col heat-right">
+          <text class="mono heat-val">{{item.score}}</text>
+          <text class="mono tiny {{item.deltaUp ? 'up' : (item.deltaDown ? 'down' : 'flat')}}">{{item.deltaText}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card mt-12">
+      <text class="tiny mono faint">分类热度均值</text>
+      <view class="mt-12">
+        <view class="heat-row cat-heat" wx:for="{{heatCats}}" wx:key="catId" data-id="{{item.catId}}" bindtap="onHeatCatTap">
+          <view class="flex1">
+            <text class="heat-name small">{{item.catName}}</text>
+            <text class="tiny mono faint">{{item.n}} 款 · 最热 {{item.topName}}</text>
+            <view class="heat-bar"><view class="heat-fill" style="width:{{item.pct}}%"></view></view>
+          </view>
+          <text class="mono heat-val small">{{item.avg}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="card card-ink mt-12">
+      <text class="tiny mono" style="color:var(--accent)">数据口径说明</text>
+      <text class="small mt-8" style="color:rgba(242,241,238,.78);display:block;line-height:1.7">本模块为演示数据。热度指数由「平台需求分布基线」与「本机真实选型行为」加权合成，用于验证排序、筛选与图表链路，不代表真实市场数据。计算方式：热度 = 基线 × 0.7 + 本机加权 × 0.3。</text>
+      <view class="btn btn-ghost btn-sm mt-12" bindtap="clearHeat">清空本机行为数据</view>
+    </view>
+  </view>
+
+  <!-- ============ 03 使用流程 ============ -->
+  <view class="sec wrap sec-line">
+    <view class="row gap-12 mb-16">
+      <text class="sec-num">03</text>
+      <text class="h2">从想法到下单</text>
+    </view>
+    <view class="flow-list">
+      <view class="flow-item" wx:for="{{flow}}" wx:key="n">
+        <text class="flow-n mono">{{item.n}}</text>
+        <view class="flex1">
+          <view class="row gap-6">
+            <text class="h4">{{item.title}}</text>
+            <text class="tag {{item.actor === '系统' ? 'tag-accent' : 'tag-line'}} tiny">{{item.actor}}</text>
+          </view>
+          <text class="small muted mt-8" style="display:block;line-height:1.65">{{item.desc}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 04 目标用户 ============ -->
+  <view class="sec wrap sec-line">
+    <view class="row gap-12 mb-16">
+      <text class="sec-num">04</text>
+      <text class="h2">为谁而做</text>
+    </view>
+    <view class="card mb-12" wx:for="{{personas}}" wx:key="id">
+      <view class="row-between">
+        <text class="h4">{{item.name}}</text>
+        <text class="tag tag-accent tiny">{{item.tag}}</text>
+      </view>
+      <text class="tiny mono faint mt-8" style="display:block">预算区间 {{item.budget}}</text>
+      <view class="hr"></view>
+      <view class="col gap-6">
+        <view class="row gap-6"><text class="tag tag-warn tiny">痛点</text><text class="small muted flex1">{{item.pain}}</text></view>
+        <view class="row gap-6"><text class="tag tag-line tiny">诉求</text><text class="small muted flex1">{{item.need}}</text></view>
+        <view class="row gap-6"><text class="tag tag-ok tiny">价值</text><text class="small muted flex1">{{item.value}}</text></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="wrap">
+    <view class="card card-ink">
+      <text class="h2 serif" style="color:#f2f1ee">先验证可行性，再决定要不要花钱。</text>
+      <text class="small mt-12" style="color:rgba(242,241,238,.72);display:block;line-height:1.7">工作台实时给出兼容性结论、引脚占用、功耗估算与成本合计。方案可保存为模板，随时复购。</text>
+      <view class="btn btn-accent mt-16" bindtap="goBuilder">打开选型工作台</view>
+    </view>
+  </view>
+
+</view>

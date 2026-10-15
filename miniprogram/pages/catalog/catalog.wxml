@@ -1,0 +1,103 @@
+<view class="page">
+
+  <!-- 搜索栏 -->
+  <view class="searchbar">
+    <view class="search-input">
+      <text class="mono tiny faint">⌕</text>
+      <input class="flex1" value="{{q}}" placeholder="搜索模块名 / 品牌 / 标签" placeholder-class="ph" bindinput="onSearch" confirm-type="search" />
+    </view>
+    <view class="btn btn-ghost btn-sm" bindtap="toggleFilter">{{showFilter ? '收起' : '筛选'}}</view>
+  </view>
+
+  <!-- 分类横滑 -->
+  <scroll-view scroll-x class="chips-scroll chips-bar" enhanced show-scrollbar="{{false}}">
+    <view class="chips-inner">
+      <view class="chip {{cat === item.id ? 'on' : ''}}" wx:for="{{catChips}}" wx:key="id"
+            data-k="cat" data-v="{{item.id}}" bindtap="pick">
+        <text>{{item.name}}</text><text class="cnt">{{item.cnt}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 筛选面板 -->
+  <view class="filter-panel" wx:if="{{showFilter}}">
+    <text class="tiny mono faint">总线接口</text>
+    <view class="row row-wrap gap-6 mt-8 mb-16">
+      <view class="tag {{bus === item.id ? 'tag-accent' : 'tag-line'}}" wx:for="{{busChips}}" wx:key="id"
+            data-k="bus" data-v="{{item.id}}" bindtap="pick">
+        <text>{{item.name}} {{item.cnt}}</text>
+      </view>
+    </view>
+
+    <text class="tiny mono faint">供电电压</text>
+    <view class="row row-wrap gap-6 mt-8 mb-16">
+      <view class="tag {{volt === item.id ? 'tag-accent' : 'tag-line'}}" wx:for="{{voltChips}}" wx:key="id"
+            data-k="volt" data-v="{{item.id}}" bindtap="pick">
+        <text>{{item.name}} {{item.cnt}}</text>
+      </view>
+    </view>
+
+    <view class="row-between">
+      <text class="tiny mono faint">价格上限</text>
+      <text class="tiny mono">¥{{price}}{{price >= 2200 ? '+' : ''}}</text>
+    </view>
+    <slider min="3" max="2200" step="1" value="{{price}}" activeColor="#6d4ee0" backgroundColor="#e9e8e4"
+            block-size="20" bindchanging="onPrice" bindchange="onPrice" />
+
+    <view class="row-between mt-8">
+      <picker mode="selector" range="{{sortOptions}}" range-key="name" bindchange="onSort">
+        <view class="tag tag-line"><text>排序：{{sortName}} ▾</text></view>
+      </picker>
+      <checkbox-group bindchange="onStockOnly">
+        <label class="row gap-6">
+          <checkbox value="1" checked="{{stockOnly}}" color="#6d4ee0" style="transform:scale(.8)" />
+          <text class="small muted">仅显示有货</text>
+        </label>
+      </checkbox-group>
+    </view>
+
+    <view class="btn btn-quiet btn-sm mt-12" bindtap="resetAll">重置全部筛选</view>
+  </view>
+
+  <!-- 结果计数 -->
+  <view class="wrap row-between result-bar">
+    <text class="tiny mono faint">命中 {{resultCount}} 款</text>
+    <view class="row gap-6" bindtap="goBuilder">
+      <text class="tiny mono" style="color:var(--accent-ink)">当前方案 {{schemeCount}} 件 →</text>
+    </view>
+  </view>
+
+  <!-- 列表 -->
+  <view class="wrap">
+    <view class="empty" wx:if="{{list.length === 0}}">
+      <text class="big">□</text>
+      <text class="empty-title">没有符合条件的模块</text>
+      <text class="empty-desc">试着放宽价格上限、切换接口类型，或清空关键词。</text>
+      <view class="btn btn-ghost btn-sm mt-16" bindtap="resetAll">重置全部筛选</view>
+    </view>
+
+    <view class="mod-card" wx:for="{{list}}" wx:key="id">
+      <view class="mod-main" data-id="{{item.id}}" bindtap="goDetail">
+        <view class="mod-ico mono">{{item.bus}}</view>
+        <view class="flex1">
+          <text class="tiny mono faint">{{item.brand}} · {{item.catName}}</text>
+          <text class="mod-name">{{item.name}}</text>
+          <view class="row row-wrap gap-6 mt-8">
+            <text class="tag tiny" wx:for="{{item.tags}}" wx:for-item="t" wx:key="*this">{{t}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="hr"></view>
+      <view class="row-between">
+        <view class="col">
+          <text class="price">{{item.priceText}}</text>
+          <text class="tiny mono {{item.stockCls}}">{{item.stockText}} · {{item.volt}}</text>
+        </view>
+        <view class="btn {{item.qty ? 'btn-accent' : 'btn-ghost'}} btn-sm" data-id="{{item.id}}" catchtap="add">
+          {{item.qty ? '已选 ×' + item.qty : '加入方案'}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+</view>

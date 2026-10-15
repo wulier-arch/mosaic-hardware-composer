@@ -1,0 +1,36 @@
+.searchbar {
+  display: flex; align-items: center; gap: 16rpx;
+  padding: 20rpx 32rpx; background: var(--bg); border-bottom: 2rpx solid var(--line);
+  position: sticky; top: 0; z-index: 10;
+}
+.search-input {
+  flex: 1; display: flex; align-items: center; gap: 12rpx;
+  background: var(--bg-raised); border: 2rpx solid var(--line-mid);
+  border-radius: var(--radius); padding: 16rpx 22rpx; font-size: 28rpx;
+}
+.ph { color: var(--ghost); }
+
+.chips-bar { background: var(--bg); border-bottom: 2rpx solid var(--line); }
+.chips-inner { display: inline-flex; padding: 18rpx 32rpx; }
+
+.filter-panel {
+  padding: 28rpx 32rpx; background: var(--bg-sunken);
+  border-bottom: 2rpx solid var(--line);
+}
+
+.result-bar { padding-top: 24rpx; padding-bottom: 16rpx; }
+
+.mod-card {
+  background: var(--bg-raised); border: 2rpx solid var(--line);
+  border-radius: var(--radius-lg); padding: 26rpx; margin-bottom: 20rpx;
+}
+.mod-main { display: flex; gap: 22rpx; align-items: flex-start; }
+.mod-ico {
+  width: 96rpx; height: 96rpx; border-radius: var(--radius); flex: none;
+  background: var(--bg-sunken); color: var(--accent-ink);
+  font-size: 22rpx; display: flex; align-items: center; justify-content: center;
+  letter-spacing: 1rpx;
+}
+.mod-name { display: block; font-size: 30rpx; font-weight: 600; margin-top: 6rpx; line-height: 1.35; }
+.stock.low { color: var(--warn); }
+.stock.out { color: var(--danger); }

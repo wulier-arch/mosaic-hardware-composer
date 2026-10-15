@@ -1,0 +1,113 @@
+<view class="page">
+
+  <view class="wrap head">
+    <text class="kicker">Scheme summary</text>
+    <text class="h1 serif mt-12">{{schemeName}}</text>
+    <view class="row row-wrap gap-6 mt-12">
+      <text class="tag tag-accent tiny">{{summary.kinds}} 类 / {{summary.items}} 件</text>
+      <text class="tag tag-line tiny">难度 {{summary.difficulty}}/5</text>
+      <text class="tag tag-line tiny">约 {{summary.hours}} 小时</text>
+      <text class="tag {{summary.errors ? 'tag-danger' : (summary.warnings ? 'tag-warn' : 'tag-ok')}} tiny">{{summary.verdictText}}</text>
+    </view>
+  </view>
+
+  <!-- ============ BOM ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <view class="row-between">
+        <text class="tiny mono faint">方案清单（BOM）</text>
+        <view class="btn btn-ghost btn-sm" bindtap="copyBom">复制清单</view>
+      </view>
+      <view class="mt-12">
+        <view class="bom-row" wx:for="{{lines}}" wx:key="id">
+          <view class="flex1">
+            <text class="small bom-name">{{item.name}}</text>
+            <text class="tiny mono faint">{{item.catName}} · {{item.brand}} · {{item.priceText}} × {{item.qty}}</text>
+          </view>
+          <text class="mono small bom-sum">{{item.sumText}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 计费 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <text class="tiny mono faint">费用明细</text>
+      <view class="mt-12">
+        <view class="cost-line"><text class="small muted flex1">模块小计</text><text class="mono small">{{cost.subtotalText}}</text></view>
+        <view class="cost-line" wx:if="{{cost.hasAssembly}}"><text class="small muted flex1">代装配服务</text><text class="mono small">{{cost.assemblyText}}</text></view>
+        <view class="cost-line" wx:if="{{cost.hasRush}}"><text class="small muted flex1">加急处理</text><text class="mono small">{{cost.rushText}}</text></view>
+        <view class="cost-line"><text class="small muted flex1">运费</text><text class="mono small">{{cost.shippingText}}</text></view>
+        <view class="hr"></view>
+        <view class="row-between">
+          <text class="h4">应付合计</text>
+          <text class="price price-lg">{{cost.totalText}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 资源占用 ============ -->
+  <view class="wrap mt-16" wx:if="{{resRows.length > 0}}">
+    <view class="card">
+      <text class="tiny mono faint">资源占用</text>
+      <view class="mt-12">
+        <view class="meter" wx:for="{{resRows}}" wx:key="label">
+          <view class="meter-top">
+            <text>{{item.label}}</text>
+            <text class="val" style="color:{{item.over ? 'var(--danger)' : 'var(--ink)'}}">{{item.need}} / {{item.cap}} {{item.unit}}</text>
+          </view>
+          <view class="meter-bar {{item.over ? 'err' : (item.pct > 75 ? 'warn' : '')}}">
+            <view class="fill" style="width:{{item.pct}}%"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 功耗 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <text class="tiny mono faint">功耗与供电预算</text>
+      <view class="mt-12">
+        <view class="meter" wx:for="{{pwrRows}}" wx:key="label">
+          <view class="meter-top">
+            <text>{{item.label}}</text>
+            <text class="val" style="color:{{item.over ? 'var(--danger)' : 'var(--ink)'}}">{{item.needText}} / {{item.capText}} A</text>
+          </view>
+          <view class="meter-bar {{item.over ? 'err' : (item.pct > 75 ? 'warn' : '')}}">
+            <view class="fill" style="width:{{item.pct}}%"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 校验报告 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <view class="row-between">
+        <text class="tiny mono faint">兼容性报告</text>
+        <text class="tiny mono faint">{{summary.errors}} 冲突 / {{summary.warnings}} 提醒</text>
+      </view>
+      <view class="col gap-6 mt-12">
+        <view class="issue {{item.level}}" wx:for="{{issues}}" wx:key="rule">
+          <text class="issue-ico">{{item.ico}}</text>
+          <view class="flex1">
+            <text class="issue-title">{{item.title}} <text class="issue-code">{{item.rule}}</text></text>
+            <text class="issue-body">{{item.body}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view style="height:200rpx"></view>
+
+  <view class="actionbar">
+    <view class="btn btn-ghost btn-flex" bindtap="goBuilder">返回修改</view>
+    <view class="btn {{summary.canCheckout ? 'btn-primary' : 'btn-primary btn-disabled'}} btn-flex" bindtap="goCheckout">去结算</view>
+  </view>
+
+</view>

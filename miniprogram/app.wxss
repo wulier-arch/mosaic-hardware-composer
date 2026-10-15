@@ -1,0 +1,198 @@
+/* =============================================================
+   MOSAIC 拼造 · 全局样式
+   沿用网页版设计令牌：暖白纸感底 + 近黑墨色 + 紫罗兰主色 + 发丝线
+   ============================================================= */
+page {
+  --bg: #f2f1ee;
+  --bg-raised: #faf9f7;
+  --bg-sunken: #e9e8e4;
+  --bg-ink: #101014;
+
+  --ink: #101014;
+  --muted: rgba(16, 16, 20, 0.62);
+  --faint: rgba(16, 16, 20, 0.42);
+  --ghost: rgba(16, 16, 20, 0.26);
+
+  --line: rgba(16, 16, 20, 0.13);
+  --line-mid: rgba(16, 16, 20, 0.24);
+  --line-strong: rgba(16, 16, 20, 0.42);
+
+  --accent: #a78bfa;
+  --accent-ink: #6d4ee0;
+  --accent-soft: rgba(167, 139, 250, 0.16);
+  --blue: #2d81ff;
+  --blue-soft: rgba(45, 129, 255, 0.12);
+
+  --ok: #1a7f4b;
+  --ok-soft: rgba(26, 127, 75, 0.12);
+  --warn: #a15c00;
+  --warn-soft: rgba(161, 92, 0, 0.12);
+  --danger: #b3261e;
+  --danger-soft: rgba(179, 38, 30, 0.12);
+
+  --radius-sm: 8rpx;
+  --radius: 16rpx;
+  --radius-lg: 28rpx;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 28rpx;
+  line-height: 1.62;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", sans-serif;
+}
+
+view, text, button, input, textarea, scroll-view, swiper { box-sizing: border-box; }
+
+/* ---------- 排版 ---------- */
+.serif { font-family: "Songti SC", "Noto Serif SC", Georgia, serif; font-weight: 400; }
+.mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+.h1 { display: block; font-size: 56rpx; line-height: 1.16; letter-spacing: -1rpx; font-weight: 600; }
+.h2 { display: block; font-size: 40rpx; line-height: 1.2; letter-spacing: -0.5rpx; font-weight: 600; }
+.h3 { display: block; font-size: 32rpx; font-weight: 600; }
+.h4 { display: block; font-size: 28rpx; font-weight: 600; }
+.muted { color: var(--muted); }
+.block { display: block; }
+.faint { color: var(--faint); }
+.small { font-size: 24rpx; }
+.tiny { font-size: 21rpx; }
+
+.kicker {
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 20rpx; letter-spacing: 3rpx; text-transform: uppercase; color: var(--faint);
+}
+.sec-num {
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 22rpx; letter-spacing: 3rpx; color: var(--accent-ink);
+}
+
+/* ---------- 容器 ---------- */
+.page { min-height: 100vh; background: var(--bg); padding-bottom: 40rpx; }
+.wrap { padding: 0 32rpx; }
+.sec { padding: 44rpx 0; }
+.sec-line { border-top: 2rpx solid var(--line); }
+.row { display: flex; align-items: center; }
+.row-between { display: flex; align-items: center; justify-content: space-between; }
+.row-wrap { flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; }
+.gap-6 { gap: 12rpx; } .gap-8 { gap: 16rpx; } .gap-12 { gap: 24rpx; } .gap-16 { gap: 32rpx; }
+.flex1 { flex: 1; min-width: 0; }
+.mt-8 { margin-top: 16rpx; } .mt-12 { margin-top: 24rpx; } .mt-16 { margin-top: 32rpx; }
+.mt-24 { margin-top: 48rpx; } .mb-8 { margin-bottom: 16rpx; } .mb-12 { margin-bottom: 24rpx; }
+.mb-16 { margin-bottom: 32rpx; }
+
+/* ---------- 卡片 ---------- */
+.card {
+  background: var(--bg-raised);
+  border: 2rpx solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 32rpx;
+}
+.card-flat { background: var(--bg-sunken); border-color: transparent; }
+.card-ink { background: var(--bg-ink); border-color: var(--bg-ink); color: #f2f1ee; }
+.card-ink .muted { color: rgba(242, 241, 238, 0.66); }
+.card-pad-sm { padding: 24rpx; }
+
+/* ---------- 按钮 ---------- */
+.btn {
+  display: flex; align-items: center; justify-content: center;
+  height: 88rpx; border-radius: var(--radius); font-size: 30rpx; font-weight: 600;
+  line-height: 1; border: 2rpx solid transparent;
+}
+.btn::after { border: none; }
+.btn-primary { background: var(--bg-ink); color: #f2f1ee; }
+.btn-primary.btn-disabled { background: var(--line-mid); color: rgba(242,241,238,.7); }
+.btn-accent { background: var(--accent); color: #1b1035; }
+.btn-ghost { background: var(--bg-raised); color: var(--ink); border-color: var(--line-mid); }
+.btn-quiet { background: transparent; color: var(--muted); }
+.btn-danger { background: transparent; color: var(--danger); border-color: rgba(179,38,30,.35); }
+.btn-sm { height: 64rpx; font-size: 25rpx; border-radius: var(--radius-sm); padding: 0 22rpx; }
+.btn-block { width: 100%; }
+.btn-flex { flex: 1; }
+
+/* ---------- 标签 ---------- */
+.tag {
+  display: inline-flex; align-items: center; gap: 6rpx;
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 21rpx; padding: 6rpx 14rpx; border-radius: var(--radius-sm);
+  background: var(--bg-sunken); color: var(--muted); border: 2rpx solid transparent;
+}
+.tag-accent { background: var(--accent-soft); color: var(--accent-ink); border-color: rgba(167,139,250,.32); }
+.tag-ok { background: var(--ok-soft); color: var(--ok); border-color: rgba(26,127,75,.26); }
+.tag-warn { background: var(--warn-soft); color: var(--warn); border-color: rgba(161,92,0,.26); }
+.tag-danger { background: var(--danger-soft); color: var(--danger); border-color: rgba(179,38,30,.26); }
+.tag-line { background: transparent; border-color: var(--line-mid); color: var(--muted); }
+.tag-blue { background: var(--blue-soft); color: var(--blue); border-color: rgba(45,129,255,.28); }
+
+.dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: currentColor; flex: none; }
+
+/* ---------- 价格 ---------- */
+.price { font-family: "SF Mono", Menlo, monospace; font-weight: 700; font-size: 36rpx; letter-spacing: -1rpx; }
+.price-cur { font-size: 22rpx; font-weight: 500; color: var(--faint); }
+.price-lg { font-size: 56rpx; }
+
+/* ---------- 表单 ---------- */
+.field { margin-bottom: 28rpx; }
+.field-label {
+  display: block; font-family: "SF Mono", Menlo, monospace; font-size: 21rpx;
+  letter-spacing: 2rpx; text-transform: uppercase; color: var(--faint); margin-bottom: 12rpx;
+}
+.field-label .req { color: var(--danger); }
+.input, .textarea, .picker-box {
+  width: 100%; background: var(--bg-raised); border: 2rpx solid var(--line-mid);
+  border-radius: var(--radius); padding: 22rpx 24rpx; font-size: 29rpx; color: var(--ink);
+}
+.textarea { min-height: 160rpx; line-height: 1.6; }
+.picker-box { display: flex; align-items: center; justify-content: space-between; }
+.picker-box .ph { color: var(--ghost); }
+.field-err { font-size: 23rpx; color: var(--danger); margin-top: 10rpx; }
+.field-bad .input, .field-bad .textarea, .field-bad .picker-box { border-color: var(--danger); background: rgba(179,38,30,.03); }
+
+.check { display: flex; align-items: flex-start; gap: 16rpx; padding: 8rpx 0; }
+.check .box {
+  width: 36rpx; height: 36rpx; border-radius: 8rpx; border: 2rpx solid var(--line-strong);
+  flex: none; margin-top: 4rpx; display: flex; align-items: center; justify-content: center;
+}
+.check .box.on { background: var(--accent-ink); border-color: var(--accent-ink); }
+.check .box .tick { color: #fff; font-size: 24rpx; line-height: 1; }
+
+/* ---------- 分割线 ---------- */
+.hr { height: 2rpx; background: var(--line); margin: 28rpx 0; }
+
+/* ---------- 计量条 ---------- */
+.meter { margin-bottom: 24rpx; }
+.meter-top { display: flex; justify-content: space-between; font-size: 25rpx; margin-bottom: 10rpx; }
+.meter-top .val { font-family: "SF Mono", Menlo, monospace; font-weight: 600; }
+.meter-bar { height: 14rpx; border-radius: 8rpx; background: var(--bg-sunken); overflow: hidden; }
+.meter-bar .fill { height: 100%; background: var(--accent); border-radius: 8rpx; transition: width .35s ease; }
+.meter-bar.warn .fill { background: var(--warn); }
+.meter-bar.err .fill { background: var(--danger); }
+
+/* ---------- 问题条目 ---------- */
+.issue {
+  display: flex; gap: 18rpx; padding: 22rpx 24rpx; border-radius: var(--radius);
+  border: 2rpx solid var(--line); background: var(--bg-raised); align-items: flex-start;
+}
+.issue-ico { flex: none; margin-top: 4rpx; font-size: 28rpx; line-height: 1; }
+.issue.err { border-color: rgba(179,38,30,.32); background: var(--danger-soft); }
+.issue.warn { border-color: rgba(161,92,0,.3); background: var(--warn-soft); }
+.issue.ok { border-color: rgba(26,127,75,.28); background: var(--ok-soft); }
+.issue-title { font-weight: 600; font-size: 27rpx; display: block; margin-bottom: 6rpx; }
+.issue-code { font-family: "SF Mono", Menlo, monospace; font-size: 21rpx; color: var(--ghost); }
+.issue-body { color: var(--muted); font-size: 25rpx; line-height: 1.62; }
+
+/* ---------- 空态 ---------- */
+.empty { padding: 110rpx 40rpx; text-align: center; }
+.empty .big { font-size: 68rpx; opacity: .3; }
+.empty-title { font-size: 30rpx; font-weight: 600; color: var(--muted); margin-top: 20rpx; }
+.empty-desc { font-size: 25rpx; color: var(--faint); margin-top: 12rpx; line-height: 1.6; }
+
+/* ---------- 顶部分类横滑 ---------- */
+.chips-scroll { white-space: nowrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8rpx;
+  padding: 14rpx 26rpx; border-radius: 999rpx; margin-right: 14rpx;
+  border: 2rpx solid var(--line-mid); background: var(--bg-raised);
+  font-size: 26rpx; color: var(--muted);
+}
+.chip.on { background: var(--accent-soft); border-color: rgba(167,139,250,.5); color: var(--accent-ink); font-weight: 600; }
+.chip .cnt { font-family: "SF Mono", Menlo, monospace; font-size: 21rpx; color: var(--ghost); }

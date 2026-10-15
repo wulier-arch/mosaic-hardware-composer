@@ -1,0 +1,14 @@
+.head { padding-top: 36rpx; padding-bottom: 28rpx; border-bottom: 2rpx solid var(--line); }
+
+.bom-row { display: flex; align-items: center; gap: 16rpx; padding: 18rpx 0; border-bottom: 2rpx solid var(--line); }
+.bom-row:last-child { border-bottom: none; }
+.bom-name { display: block; font-weight: 500; line-height: 1.35; }
+.bom-sum { flex: none; font-weight: 600; }
+
+.cost-line { display: flex; align-items: center; gap: 16rpx; padding: 12rpx 0; }
+
+.actionbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; gap: 16rpx; padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  background: rgba(250,249,247,.96); border-top: 2rpx solid var(--line-mid);
+}

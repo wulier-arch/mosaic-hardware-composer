@@ -1,0 +1,139 @@
+<view class="page" wx:if="{{m}}">
+
+  <!-- ============ 顶部视觉 ============ -->
+  <view class="hero">
+    <view class="hero-grid"></view>
+    <view class="hero-ico mono">{{m.catName}}</view>
+    <view class="hero-badges">
+      <text class="tag tag-line tiny">{{m.en}}</text>
+      <text class="tag {{stockCls === 'out' ? 'tag-danger' : (stockCls === 'low' ? 'tag-warn' : 'tag-ok')}} tiny">
+        <view class="dot"></view><text>{{stockText}}</text>
+      </text>
+    </view>
+  </view>
+
+  <!-- ============ 指标 ============ -->
+  <view class="metrics">
+    <view class="metric">
+      <text class="tiny mono faint">7 日热度</text>
+      <text class="mono metric-v">{{heatScore}}</text>
+    </view>
+    <view class="metric">
+      <text class="tiny mono faint">全站排名</text>
+      <text class="mono metric-v">{{heatRank ? 'No.' + heatRank : '—'}}</text>
+    </view>
+    <view class="metric">
+      <text class="tiny mono faint">环比</text>
+      <text class="mono metric-v {{deltaUp ? 'up' : (deltaDown ? 'down' : 'flat')}}">{{deltaText}}</text>
+    </view>
+  </view>
+
+  <!-- ============ 基本信息 ============ -->
+  <view class="wrap mt-16">
+    <view class="row row-wrap gap-6">
+      <text class="tag tag-accent tiny">{{m.catName}}</text>
+      <text class="tag tiny" wx:for="{{m.tags}}" wx:for-item="t" wx:key="*this">{{t}}</text>
+    </view>
+    <text class="h1 serif mt-12">{{m.name}}</text>
+    <text class="tiny mono faint mt-8" style="display:block">{{m.brand}} · {{m.en}}</text>
+    <text class="muted mt-12" style="display:block;line-height:1.72">{{m.blurb}}</text>
+  </view>
+
+  <!-- ============ 定价与加购 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <view class="row-between">
+        <view class="col">
+          <text class="tiny mono faint">平台定价</text>
+          <text class="price price-lg mt-8">{{m.priceText}}</text>
+          <text class="tiny mono faint mt-8">含税 · 满 ¥299 免运费</text>
+        </view>
+        <view class="qty-big">
+          <view class="qty-btn" bindtap="dec">−</view>
+          <text class="qty-n mono">{{qty}}</text>
+          <view class="qty-btn" bindtap="inc">+</view>
+        </view>
+      </view>
+
+      <view class="row gap-8 mt-16">
+        <view class="btn btn-primary btn-flex" bindtap="add">加入我的方案</view>
+        <view class="btn btn-ghost btn-flex" bindtap="buyNow">立即下单</view>
+      </view>
+      <view class="btn btn-quiet btn-sm mt-8" bindtap="goBuilder">前往工作台查看方案 →</view>
+    </view>
+  </view>
+
+  <!-- ============ 兼容性 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <text class="tiny mono faint">与当前方案的兼容性</text>
+      <view class="issue {{compat.cls === 'err' ? 'err' : (compat.cls === 'warn' ? 'warn' : (compat.cls === 'ok' ? 'ok' : ''))}} mt-12">
+        <text class="issue-ico">{{compat.cls === 'err' ? '✕' : (compat.cls === 'warn' ? '!' : (compat.cls === 'ok' ? '✓' : 'i'))}}</text>
+        <view class="flex1">
+          <text class="issue-title">{{compat.title}}</text>
+          <text class="issue-body">{{compat.body}}</text>
+        </view>
+      </view>
+      <view class="col gap-6 mt-12" wx:if="{{compat.items.length > 0}}">
+        <view class="issue {{item.level}}" wx:for="{{compat.items}}" wx:key="rule">
+          <text class="issue-ico">{{item.level === 'err' ? '✕' : '!'}}</text>
+          <view class="flex1">
+            <text class="issue-title">{{item.title}} <text class="issue-code">{{item.rule}}</text></text>
+            <text class="issue-body">{{item.body}}</text>
+          </view>
+        </view>
+      </view>
+      <text class="tiny mono faint mt-12" wx:if="{{compat.boardName}}" style="display:block">
+        基准主控：{{compat.boardName}} · 加入后共 {{compat.kinds}} 类 · 合计 {{compat.totalText}}
+      </text>
+    </view>
+  </view>
+
+  <!-- ============ 接口与供电 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <text class="tiny mono faint">接口与供电</text>
+      <view class="mt-12">
+        <view class="kv" wx:for="{{reqRows}}" wx:key="k">
+          <text class="kv-k">{{item.k}}</text>
+          <text class="kv-v mono">{{item.v}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 完整规格 ============ -->
+  <view class="wrap mt-16">
+    <view class="card">
+      <text class="tiny mono faint">完整规格参数</text>
+      <view class="mt-12">
+        <view class="kv" wx:for="{{specRows}}" wx:key="k">
+          <text class="kv-k">{{item.k}}</text>
+          <text class="kv-v mono">{{item.v}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============ 相关推荐 ============ -->
+  <view class="wrap mt-24">
+    <view class="row gap-12 mb-12">
+      <text class="sec-num">→</text>
+      <text class="h3">常与本模块一起选用</text>
+    </view>
+    <view class="rel-card" wx:for="{{related}}" wx:key="id" data-id="{{item.id}}" bindtap="goDetail">
+      <view class="flex1">
+        <text class="small rel-name">{{item.name}}</text>
+        <text class="tiny mono faint">{{item.brand}}</text>
+      </view>
+      <text class="mono small">{{item.priceText}}</text>
+    </view>
+  </view>
+
+  <view style="height:60rpx"></view>
+</view>
+
+<view class="empty" wx:else>
+  <text class="empty-title">模块不存在</text>
+  <text class="empty-desc">这个模块编号可能已下架。</text>
+</view>
