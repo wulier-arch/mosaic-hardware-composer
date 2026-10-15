@@ -81,7 +81,11 @@
 
 ## 在线体验
 
-**推荐链接（GitHub Pages，长期稳定）：** <https://wulier-arch.github.io/mosaic-hardware-composer/>
+> **注意：报名表的「作品地址」一栏要求填 `https://render.qmuse.pub/p/...` 格式的链接。**
+> 这个域名是 QMuse（妙思）的作品发布域名，只能在 QMuse 内发布后生成。
+> 在 QMuse 上复现本作品所需的需求描述见仓库根目录的 **`QMUSE-PROMPT.md`**（可直接逐段粘贴）。
+
+**GitHub Pages（完整版，作为演示链接）：** <https://wulier-arch.github.io/mosaic-hardware-composer/>
 
 **源码仓库：** <https://github.com/wulier-arch/mosaic-hardware-composer>
 
