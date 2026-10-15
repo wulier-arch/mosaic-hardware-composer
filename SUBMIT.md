@@ -81,7 +81,9 @@
 
 ## 在线体验
 
-**分享链接：** <https://aac10e196a1e4ed38e38adf9a0e0fcc9.sg2.agentos-app.run>
+**推荐链接（GitHub Pages，长期稳定）：** <https://wulier-arch.github.io/mosaic-hardware-composer/>
+
+**源码仓库：** <https://github.com/wulier-arch/mosaic-hardware-composer>
 
 | 入口 | 说明 |
 |---|---|
@@ -105,9 +107,9 @@
 
 ### 另：部署到自己的仓库（GitHub Pages / Vercel / Cloudflare）
 
-项目是零构建纯静态站点，仓库里已经放好三套配置，可以直接部署成你自己的长期链接：
+本项目已部署在 GitHub Pages，仓库地址见上。项目是零构建纯静态站点，也可以按下面的方式部署到其他平台：
 
-- **GitHub Pages** —— 推送到仓库 `main` 分支，在 Settings → Pages 把 Source 设为 GitHub Actions，`.github/workflows/deploy-pages.yml` 会自动发布到 `https://<用户名>.github.io/<仓库名>/`
+- **GitHub Pages** —— 推送到仓库 `main` 分支后，`.github/workflows/deploy-pages.yml` 会自动发布到 `https://<用户名>.github.io/<仓库名>/`
 - **Vercel** —— 导入仓库即可，`vercel.json` 已就绪，`api/` 目录会自动变成 Serverless Functions
 - **Cloudflare Pages** —— 连接仓库，Build command 留空，Output directory 填 `/`，`_headers` 与 `_redirects` 已就绪
 

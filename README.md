@@ -2,6 +2,9 @@
 
 > 像拼图一样，造出你的硬件。
 
+**在线体验：** <https://wulier-arch.github.io/mosaic-hardware-composer/>
+**作品提交说明：** [`SUBMIT.md`](./SUBMIT.md) · [网页版](https://wulier-arch.github.io/mosaic-hardware-composer/submit.html)
+
 在线选择并组合开发板、传感器、电机、电源、通信与结构件，平台在**每一次加购时**实时校验这套组合在物理与电气层面是否可行，最终输出可下单的方案清单。
 
 ---
