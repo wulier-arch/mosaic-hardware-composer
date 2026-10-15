@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>模块详情 · MOSAIC 拼造</title>
+<meta name="theme-color" content="#f2f1ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23101014'/%3E%3Crect x='4' y='4' width='7' height='7' rx='1.5' fill='%23a78bfa'/%3E%3Crect x='13' y='13' width='7' height='7' rx='1.5' fill='%232d81ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<div id="navHost"></div>
+<main id="app"></main>
+<div id="footHost"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/core.js"></script>
+<script>
+(function () {
+  const { U, ICO, D, UI, Heat, Store, Compat } = window.Mosaic;
+  UI.mount('catalog.html');
+
+  const id = U.params().id;
+  const m = D.MODULE_MAP[id];
+  const app = U.$('#app');
+
+  if (!m) {
+    app.innerHTML = `<div class="wrap section">${UI.empty('模块不存在',
+      '这个模块编号可能已下架或链接有误。',
+      `<a class="btn btn-primary btn-sm" href="catalog.html">返回模块库</a>`)}</div>`;
+    UI.hydrateIcons();
+    return;
+  }
+
+  Heat.record('view', m.id);
+  document.title = m.name + ' · MOSAIC 拼造';
+
+  const cat = D.CATEGORIES.find(c => c.id === m.cat);
+  const stock = Store.stockOf(m.id);
+  const local = Heat.localScore();
+  const hs = Heat.score(m, local, '7d');
+  const scheme = Store.scheme();
+  const qty = U.qtyOf(scheme, m.id);
+  const isBoard = m.cat === 'board';
+  const busLabel = { i2c: 'I2C', spi: 'SPI', uart: 'UART', gpio: 'GPIO', pwm: 'PWM', adc: 'ADC', i2s: 'I2S', csi: 'CSI', onewire: '单总线', none: '无需总线' }[m.req.bus] || '—';
+
+  /* ---------- 兼容性结论 ---------- */
+  const hasBoard = scheme.items.some(i => (D.MODULE_MAP[i.id] || {}).cat === 'board');
+  let compatHTML = '';
+  if (!isBoard) {
+    if (!hasBoard) {
+      compatHTML = `<div class="issue"><span class="issue-ico" style="color:var(--accent-ink)">${ICO.svg('info', 16)}</span>
+        <div><span class="issue-title">尚未确定主控</span>
+        <span class="issue-body">先在方案中加入一块主控开发板，才能针对本模块给出总线、电平与功耗的兼容性结论。</span></div></div>`;
+    } else {
+      const { report } = Compat.checkOne(m.id, scheme);
+      const board = report.board;
+      const mine = report.issues.filter(x => (x.body || '').includes(m.name) || (x.title || '').includes(m.name));
+      const otherErr = report.errors - mine.filter(x => x.level === 'err').length;
+      let head;
+      if (mine.some(x => x.level === 'err')) {
+        head = `<div class="issue err"><span class="issue-ico" style="color:var(--danger)">${ICO.svg('warn', 16)}</span>
+          <div><span class="issue-title">与当前方案存在冲突</span>
+          <span class="issue-body">把本模块加入方案后会产生 ${mine.filter(x => x.level === 'err').length} 项冲突，需要先解决。</span></div></div>`;
+      } else if (mine.length) {
+        head = `<div class="issue warn"><span class="issue-ico" style="color:var(--warn)">${ICO.svg('info', 16)}</span>
+          <div><span class="issue-title">可以加入，但有 ${mine.filter(x => x.level === 'warn').length} 项提醒</span>
+          <span class="issue-body">功能上可用，建议按下面的提示补齐配件或调整参数。</span></div></div>`;
+      } else {
+        head = `<div class="issue ok"><span class="issue-ico" style="color:var(--ok)">${ICO.svg('check', 16)}</span>
+          <div><span class="issue-title">与当前方案兼容</span>
+          <span class="issue-body">已通过总线数量、引脚占用、电平匹配、地址冲突、功耗预算与算力档位校验。</span></div></div>`;
+      }
+      const detail = mine.map(x =>
+        `<div class="issue ${x.level === 'err' ? 'err' : (x.level === 'warn' ? 'warn' : 'ok')}" style="margin-top:8px">
+          <span class="issue-ico" style="color:${x.level === 'err' ? 'var(--danger)' : (x.level === 'warn' ? 'var(--warn)' : 'var(--ok)')}">${ICO.svg(x.level === 'err' ? 'warn' : (x.level === 'warn' ? 'info' : 'check'), 15)}</span>
+          <div><span class="issue-title">${U.esc(x.title)} <span class="issue-code">${x.rule}</span></span>
+          <span class="issue-body">${U.esc(x.body)}</span></div>
+        </div>`).join('');
+      compatHTML = head + detail +
+        `<div class="mono mt-16" style="font-size:.7rem;color:var(--faint)">
+          当前基准主控：${U.esc(board ? board.name : '—')} · 加入后共 ${report.cost.kinds} 类 / ${report.cost.itemCount} 件 · 合计 ${U.money(report.cost.total)}</div>`;
+    }
+  } else {
+    const curBoard = scheme.items.map(i => D.MODULE_MAP[i.id]).find(x => x && x.cat === 'board');
+    compatHTML = curBoard && curBoard.id !== m.id
+      ? `<div class="issue warn"><span class="issue-ico" style="color:var(--warn)">${ICO.svg('info', 16)}</span>
+          <div><span class="issue-title">将替换当前主控</span>
+          <span class="issue-body">方案中已有「${U.esc(curBoard.name)}」。主控同时只能有一个，加入本模块会自动移除原有主控，请重新检查外设兼容性。</span></div></div>`
+      : `<div class="issue ok"><span class="issue-ico" style="color:var(--ok)">${ICO.svg('check', 16)}</span>
+          <div><span class="issue-title">这是方案的主控基准</span>
+          <span class="issue-body">主控决定可用总线数量、逻辑电平、供电能力与算力档位，是全部外设兼容性判断的基准。</span></div></div>`;
+  }
+
+  /* ---------- 规格与接口表 ---------- */
+  const specRows = m.specs.map(s => `<tr><th>${U.esc(s[0])}</th><td>${U.esc(s[1])}</td></tr>`).join('');
+
+  const reqRows = isBoard ? [
+    ['逻辑电平', m.caps.v + 'V'],
+    ['算力档位', D.CLASS_LABEL[m.caps.cls]],
+    ['GPIO 可用', m.caps.gpio + ' 个'],
+    ['I2C / SPI / UART', `${m.caps.i2c} / ${m.caps.spi} / ${m.caps.uart}`],
+    ['PWM / ADC', `${m.caps.pwm} / ${m.caps.adc}`],
+    ['5V 供电能力', (m.caps.mA5 / 1000).toFixed(2) + ' A'],
+    ['3.3V 供电能力', (m.caps.mA33 / 1000).toFixed(2) + ' A'],
+    ['无线能力', [m.caps.wifi && 'WiFi', m.caps.ble && 'BLE', m.caps.can && 'CAN'].filter(Boolean).join(' / ') || '无'],
+  ] : [
+    ['总线接口', busLabel],
+    ['I2C 地址', m.req.addrHex || '—'],
+    ['供电电压', m.req.v ? m.req.v + ' V' : '无需供电'],
+    ['典型电流', m.req.mA ? m.req.mA + ' mA' : '—'],
+    ['峰值电流', m.req.peak ? m.req.peak + ' mA' : '—'],
+    ['占用 IO', m.req.pins + ' 个'],
+    ['最低算力', D.CLASS_LABEL[m.req.cls]],
+    ['需要驱动板', m.req.driver ? '是' : '否'],
+    ['需要外接电源', m.req.ext ? '是' + (m.req.rail ? '（' + m.req.rail + 'V）' : '') : '否'],
+    ['协议要求', m.req.proto ? (D.PROTO_META[m.req.proto] ? D.PROTO_META[m.req.proto].label : m.req.proto) : '—'],
+  ].filter(r => r[1] !== '—' || r[0] === 'I2C 地址');
+  const reqTable = reqRows.map(r => `<tr><th>${U.esc(r[0])}</th><td>${U.esc(r[1])}</td></tr>`).join('');
+
+  /* ---------- 热度趋势 ---------- */
+  const spark = Heat.sparkSVG(Heat.sparkline(m, '7d'), { w: 300, h: 64, color: '#6d4ee0' });
+  const rank7 = Heat.ranking({ range: '7d' }).findIndex(x => x.module.id === m.id) + 1;
+
+  /* ---------- 相关推荐 ---------- */
+  const related = D.MODULES
+    .filter(x => x.id !== m.id && (x.cat === m.cat || (isBoard && x.cat === 'power') || Math.abs(x.price - m.price) < m.price * 0.4))
+    .map(x => ({ x, d: (x.cat === m.cat ? 0 : 100) + Math.abs(x.price - m.price) }))
+    .sort((a, b) => a.d - b.d).slice(0, 4).map(o => o.x);
+
+  /* ---------- 组装页面 ---------- */
+  app.innerHTML = `
+  <header class="page-head" style="padding-bottom:24px">
+    <div class="wrap">
+      <div class="crumb"><a href="index.html">首页</a><span>/</span><a href="catalog.html">模块库</a><span>/</span>
+        <a href="catalog.html?cat=${m.cat}">${U.esc(cat.name)}</a><span>/</span>${U.esc(m.name)}</div>
+    </div>
+  </header>
+
+  <section class="section" style="padding-top:32px">
+    <div class="wrap">
+      <div class="hero-grid" style="grid-template-columns:1.02fr .98fr;align-items:start">
+        <!-- 左：视觉与技术图 -->
+        <div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="height:280px;background:var(--bg-sunken);border-bottom:1px solid var(--line);display:grid;place-items:center;position:relative">
+              <div style="position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:22px 22px;opacity:.55"></div>
+              <span style="position:relative;color:var(--accent-deep)">${ICO.svg(cat.icon, 118)}</span>
+              <span class="tag tag-line" style="position:absolute;left:14px;top:14px">${U.esc(m.en)}</span>
+              <span class="tag ${stock === 0 ? 'tag-danger' : (stock < 30 ? 'tag-warn' : 'tag-ok')}" style="position:absolute;right:14px;top:14px">
+                <span class="dot"></span>${stock === 0 ? '暂时缺货' : '现货 ' + U.int(stock) + ' 件'}</span>
+            </div>
+            <div class="grid grid-4" style="border-top:0">
+              <div class="stat-cell" style="padding:14px 16px">
+                <div class="card-meta">7 日热度</div>
+                <div class="mono" style="font-size:1.15rem;font-weight:700">${hs.score.toFixed(1)}</div>
+              </div>
+              <div class="stat-cell" style="padding:14px 16px">
+                <div class="card-meta">全站排名</div>
+                <div class="mono" style="font-size:1.15rem;font-weight:700">No.${rank7 || '—'}</div>
+              </div>
+              <div class="stat-cell" style="padding:14px 16px">
+                <div class="card-meta">环比</div>
+                <div class="mono heat-delta ${m.heat.delta > 0 ? 'up' : (m.heat.delta < 0 ? 'down' : 'flat')}" style="font-size:1.15rem;font-weight:700;text-align:left">${U.pct(m.heat.delta)}</div>
+              </div>
+              <div class="stat-cell" style="padding:14px 16px">
+                <div class="card-meta">难度</div>
+                <div style="font-size:1.15rem">${UI.stars(m.req.cls + 1)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-16">
+            <div class="spread" style="margin-bottom:8px">
+              <span class="card-meta">热度趋势 · 近 14 日</span>
+              <span class="mono" style="font-size:.68rem;color:var(--faint)">示意数据</span>
+            </div>
+            ${spark}
+            <div class="row" style="justify-content:space-between;margin-top:6px">
+              <span class="mono" style="font-size:.66rem;color:var(--faint)">30 日均值 ${m.heat.d30.toFixed(1)}</span>
+              <span class="mono" style="font-size:.66rem;color:var(--faint)">当前 ${m.heat.d7.toFixed(1)}</span>
+            </div>
+          </div>
+
+          <div class="card mt-16">
+            <span class="card-meta">接口与供电</span>
+            <table class="spec-table mt-16">${reqTable}</table>
+            ${m.req.proto && D.PROTO_META[m.req.proto] ? `<div class="issue mt-16" style="background:var(--bg-sunken);border-color:transparent">
+              <span class="issue-ico" style="color:var(--accent-ink)">${ICO.svg('signal', 15)}</span>
+              <div><span class="issue-title">${D.PROTO_META[m.req.proto].label} 使用提示</span>
+              <span class="issue-body">${D.PROTO_META[m.req.proto].note}</span></div></div>` : ''}
+          </div>
+        </div>
+
+        <!-- 右：信息与操作 -->
+        <div class="stack" style="--gap:16px">
+          <div>
+            <div class="row row-wrap" style="gap:8px;margin-bottom:12px">
+              <span class="tag tag-accent">${U.esc(cat.name)}</span>
+              ${m.tags.map(t => `<span class="tag">${U.esc(t)}</span>`).join('')}
+            </div>
+            <h1 class="serif" style="font-size:clamp(1.5rem,3vw,2.1rem)">${U.esc(m.name)}</h1>
+            <div class="mono" style="font-size:.76rem;color:var(--faint);margin-top:8px">${U.esc(m.brand)} · ${U.esc(m.en)}</div>
+            <p class="sec-lead mt-16">${U.esc(m.blurb)}</p>
+          </div>
+
+          <div class="card card-pad-lg">
+            <div class="spread" style="align-items:flex-end">
+              <div>
+                <div class="card-meta">平台定价</div>
+                <div class="price" style="font-size:2rem;margin-top:4px"><span class="cur">${D.SITE.currency}</span>${m.price.toFixed(2)}</div>
+                <div class="mono" style="font-size:.68rem;color:var(--faint);margin-top:4px">含税 · 满 ¥${D.SHIPPING.freeThreshold} 免运费</div>
+              </div>
+              <div style="text-align:right">
+                <div class="card-meta">库存</div>
+                <div class="mono" style="font-size:1.05rem;font-weight:700;color:${stock === 0 ? 'var(--danger)' : (stock < 30 ? 'var(--warn)' : 'var(--ink)')}">${stock === 0 ? '缺货' : U.int(stock)}</div>
+              </div>
+            </div>
+
+            <div class="row mt-24" style="gap:10px;flex-wrap:wrap">
+              <div class="row" style="border:1px solid var(--line-mid);border-radius:var(--radius);overflow:hidden">
+                <button class="icon-btn" id="minus" style="border:0;border-radius:0;width:38px;height:40px" aria-label="减少数量">${ICO.svg('minus', 15)}</button>
+                <input class="mono" id="qty" value="${qty || 1}" inputmode="numeric" style="width:52px;height:40px;border:0;text-align:center;background:transparent;font-size:.92rem" aria-label="数量">
+                <button class="icon-btn" id="plus" style="border:0;border-radius:0;width:38px;height:40px" aria-label="增加数量">${ICO.svg('plus', 15)}</button>
+              </div>
+              <button class="btn btn-primary btn-lg" id="add" style="flex:1;min-width:170px" ${stock === 0 ? 'disabled' : ''}>
+                ${qty ? '更新方案中的数量' : '加入我的方案'}
+              </button>
+            </div>
+            <div class="row mt-16" style="gap:10px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" id="buyNow" ${stock === 0 ? 'disabled' : ''}>立即下单（跳过工作台）</button>
+              <button class="btn btn-quiet btn-sm" id="copyLink">复制模块链接</button>
+              ${qty ? `<a class="btn btn-quiet btn-sm" href="builder.html">前往工作台查看 →</a>` : ''}
+            </div>
+            ${stock === 0 ? `<p class="field-hint" style="color:var(--warn);margin-top:12px">该模块暂时缺货。加入方案后仍可下单，平台会按补货周期安排发货。</p>` : ''}
+          </div>
+
+          <div class="card">
+            <span class="card-meta">与当前方案的兼容性</span>
+            <div class="mt-16" id="compatBox">${compatHTML}</div>
+          </div>
+
+          <div class="card">
+            <span class="card-meta">完整规格参数</span>
+            <table class="spec-table mt-16">${specRows}</table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 相关推荐 -->
+      <div class="mt-48">
+        <div class="sec-head"><span class="sec-num">→</span><div>
+          <span class="sec-kicker">Related modules</span>
+          <h2 style="font-size:1.4rem">常与本模块一起选用</h2>
+        </div></div>
+        <div class="mod-grid mt-24" id="related"></div>
+      </div>
+    </div>
+  </section>`;
+
+  /* ---------- 交互 ---------- */
+  const qtyInput = U.$('#qty');
+  const getQty = () => U.clamp(parseInt(qtyInput.value, 10) || 1, 1, 99);
+  U.on(U.$('#minus'), 'click', () => { qtyInput.value = Math.max(1, getQty() - 1); });
+  U.on(U.$('#plus'), 'click', () => { qtyInput.value = Math.min(99, getQty() + 1); });
+  U.on(qtyInput, 'change', () => { qtyInput.value = getQty(); });
+
+  U.on(U.$('#add'), 'click', () => {
+    Store.addItem(m.id, getQty());
+    Heat.record('add', m.id);
+    UI.toast(`已加入方案 · ${m.name} × ${getQty()}`, 'ok');
+    setTimeout(() => location.reload(), 620);
+  });
+  U.on(U.$('#buyNow'), 'click', () => {
+    Store.addItem(m.id, getQty());
+    Heat.record('add', m.id);
+    if (!isBoard && !Store.scheme().items.some(i => (D.MODULE_MAP[i.id] || {}).cat === 'board')) {
+      UI.toast('提示：方案还没有主控，建议先选一块开发板', 'warn', 3200);
+      setTimeout(() => location.href = 'catalog.html?cat=board', 900);
+      return;
+    }
+    location.href = 'checkout.html';
+  });
+  U.on(U.$('#copyLink'), 'click', () => {
+    U.copy(location.href).then(() => UI.toast('模块链接已复制到剪贴板'));
+  });
+
+  U.$('#related').innerHTML = related.map(x => UI.modCard(x, { qty: U.qtyOf(Store.scheme(), x.id) })).join('');
+  U.$$('#related .js-add').forEach(b => U.on(b, 'click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const rid = b.getAttribute('data-id');
+    Store.addItem(rid, 1); Heat.record('add', rid);
+    UI.toast(`已加入方案 · ${D.MODULE_MAP[rid].name}`);
+    b.textContent = '已选 ×' + U.qtyOf(Store.scheme(), rid);
+    b.className = 'btn btn-accent btn-sm js-add';
+    UI.syncCount();
+  }));
+
+  UI.hydrateIcons();
+  UI.syncCount();
+})();
+</script>
+</body>
+</html>

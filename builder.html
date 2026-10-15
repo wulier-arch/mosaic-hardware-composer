@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>选型工作台 · MOSAIC 拼造</title>
+<meta name="theme-color" content="#f2f1ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23101014'/%3E%3Crect x='4' y='4' width='7' height='7' rx='1.5' fill='%23a78bfa'/%3E%3Crect x='13' y='13' width='7' height='7' rx='1.5' fill='%232d81ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<div id="navHost"></div>
+
+<header class="page-head">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">首页</a><span>/</span>选型工作台</div>
+    <div class="spread" style="align-items:flex-end;flex-wrap:wrap;gap:18px">
+      <div style="min-width:260px">
+        <span class="sec-kicker">Composer workbench</span>
+        <div class="row" style="gap:10px;align-items:center;margin-top:4px">
+          <input class="input" id="schemeName" style="font-size:1.3rem;font-weight:600;padding:6px 10px;max-width:340px;background:transparent;border-color:transparent" aria-label="方案名称">
+          <button class="icon-btn" id="renameBtn" title="重命名方案"><span data-ico="doc" data-size="15"></span></button>
+        </div>
+        <p class="sec-lead mt-8" style="font-size:.9rem" id="schemeMeta"></p>
+      </div>
+      <div class="row row-wrap" style="gap:8px">
+        <button class="btn btn-ghost btn-sm" id="loadTpl"><span data-ico="layers" data-size="14"></span> 载入模板</button>
+        <button class="btn btn-ghost btn-sm" id="saveTpl"><span data-ico="download" data-size="14"></span> 存为模板</button>
+        <button class="btn btn-ghost btn-sm" id="resetAll"><span data-ico="refresh" data-size="14"></span> 清空方案</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="section" style="padding-top:22px">
+  <div class="wrap">
+    <!-- 移动端分栏切换 -->
+    <div class="builder-tabs" id="bTabs">
+      <button class="on" data-panel="pick"><span data-ico="grid" data-size="14"></span> 选模块</button>
+      <button data-panel="scheme"><span data-ico="sliders" data-size="14"></span> 我的方案 <span class="nav-badge" id="tabCount">0</span></button>
+      <button data-panel="check"><span data-ico="shield" data-size="14"></span> 校验汇总</button>
+    </div>
+
+    <div class="builder-grid">
+      <!-- ========== 左：模块选择 ========== -->
+      <section class="builder-col sticky active" id="col-pick" aria-label="模块选择">
+        <div class="card" style="padding:0;display:flex;flex-direction:column;max-height:100%">
+          <div style="padding:12px 12px 10px;border-bottom:1px solid var(--line);flex:none">
+            <input class="input input-sm" id="pickQ" type="search" placeholder="搜索模块 / 品牌 / 标签" aria-label="搜索模块">
+            <div class="row row-wrap" style="gap:5px;margin-top:9px" id="pickCats"></div>
+          </div>
+          <div class="builder-scroll" style="padding:7px" id="pickList"></div>
+          <div style="padding:9px 12px;border-top:1px solid var(--line);flex:none">
+            <div class="spread">
+              <span class="mono" style="font-size:.68rem;color:var(--faint)" id="pickCount"></span>
+              <a class="link-arrow" href="catalog.html" style="font-size:.72rem">去模块库看详情</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== 中：我的方案 ========== -->
+      <section class="builder-col" id="col-scheme" aria-label="我的方案">
+        <div id="zones" class="stack" style="--gap:14px"></div>
+        <div class="card mt-16" id="serviceCard"></div>
+      </section>
+
+      <!-- ========== 右：校验与汇总 ========== -->
+      <section class="builder-col sticky" id="col-check" aria-label="校验与汇总">
+        <div class="builder-scroll">
+          <div id="verdictBox"></div>
+          <div class="card mt-16" id="issueBox"></div>
+          <div class="card mt-16" id="resBox"></div>
+          <div class="card mt-16" id="pwrBox"></div>
+          <div class="card mt-16" id="costBox"></div>
+          <div class="card mt-16" id="bomBox"></div>
+        </div>
+        <div style="flex:none;padding-top:14px">
+          <button class="btn btn-primary btn-block btn-lg" id="toCheckout">生成方案并去结算 →</button>
+          <div class="mono" style="font-size:.66rem;color:var(--faint);text-align:center;margin-top:8px">
+            结算前会再次校验并锁定价格
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<!-- 替换模块弹层 -->
+<div class="modal" id="replaceModal" role="dialog" aria-modal="true" aria-labelledby="replaceTitle">
+  <div class="spread" style="margin-bottom:14px">
+    <div>
+      <span class="card-meta">Replace module</span>
+      <h3 id="replaceTitle" style="font-size:1.1rem;margin-top:3px">替换模块</h3>
+    </div>
+    <button class="icon-btn" id="replaceClose" aria-label="关闭"><span data-ico="close" data-size="15"></span></button>
+  </div>
+  <p class="sec-lead" style="font-size:.86rem" id="replaceHint"></p>
+  <div id="replaceList" class="mt-16" style="max-height:52vh;overflow-y:auto"></div>
+</div>
+
+<!-- 模板弹层 -->
+<div class="modal" id="tplModal" role="dialog" aria-modal="true" aria-labelledby="tplTitle">
+  <div class="spread" style="margin-bottom:14px">
+    <div>
+      <span class="card-meta">Scheme templates</span>
+      <h3 id="tplTitle" style="font-size:1.1rem;margin-top:3px">方案模板库</h3>
+    </div>
+    <button class="icon-btn" id="tplClose" aria-label="关闭"><span data-ico="close" data-size="15"></span></button>
+  </div>
+  <div id="tplList" style="max-height:56vh;overflow-y:auto"></div>
+</div>
+
+<div id="footHost"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/core.js"></script>
+<script>
+(function () {
+  const { U, ICO, D, UI, Heat, Store, Compat } = window.Mosaic;
+  UI.mount('builder.html');
+
+  const ZONE_ORDER = ['board', 'sensor', 'actuator', 'comm', 'display', 'power', 'expand', 'mech'];
+  const ZONE_HINT = {
+    board: '方案的大脑，先定主控再选外设',
+    sensor: '感知层：温湿度、姿态、距离、气体、光学',
+    actuator: '执行层：舵机、步进、无刷、推杆、继电器',
+    comm: '联网层：LoRa、4G、NB-IoT、以太网、RS485',
+    display: '交互层：OLED、TFT、墨水屏、编码器、摇杆',
+    power: '能量层：电池组、充电管理、DC-DC、适配器',
+    expand: '扩展层：IO 扩展、ADC、电机驱动、电平转换',
+    mech: '结构与耗材：线材、底板、型材、外壳、PCB',
+  };
+
+  let scheme = Store.scheme();
+  let pickCat = 'board';
+  let pickQ = '';
+  let replaceTarget = null;
+  let mobilePanel = 'pick';
+
+  /* ================= 渲染：左侧选择器 ================= */
+  function renderPickCats() {
+    U.$('#pickCats').innerHTML =
+      `<button class="tag ${pickCat === 'all' ? 'tag-accent' : 'tag-line'}" data-cat="all" style="cursor:pointer">全部</button>` +
+      D.CATEGORIES.map(c => {
+        const n = D.MODULES.filter(m => m.cat === c.id).length;
+        const on = pickCat === c.id;
+        return `<button class="tag ${on ? 'tag-accent' : 'tag-line'}" data-cat="${c.id}" style="cursor:pointer">${c.name} ${n}</button>`;
+      }).join('');
+    U.$$('#pickCats [data-cat]').forEach(b => U.on(b, 'click', () => {
+      pickCat = b.getAttribute('data-cat'); renderPickCats(); renderPickList();
+    }));
+  }
+
+  function renderPickList() {
+    const inScheme = {};
+    scheme.items.forEach(i => { inScheme[i.id] = i.qty; });
+    let list = D.MODULES.slice();
+    if (pickCat !== 'all') list = list.filter(m => m.cat === pickCat);
+    if (pickQ.trim()) {
+      const q = pickQ.trim().toLowerCase();
+      list = list.filter(m => (m.name + m.en + m.brand + m.tags.join('')).toLowerCase().includes(q));
+    }
+    list = list.sort((a, b) => {
+      /* 已选的排后面，其余按热度 */
+      const aa = inScheme[a.id] ? 1 : 0, bb = inScheme[b.id] ? 1 : 0;
+      if (aa !== bb) return aa - bb;
+      return Heat.score(b, Heat.localScore(), 'd7').score - Heat.score(a, Heat.localScore(), 'd7').score;
+    });
+    U.$('#pickCount').textContent = `${list.length} 款可选 · 已选 ${scheme.items.length} 类`;
+    U.$('#pickList').innerHTML = list.length ? list.map(m => {
+      const n = inScheme[m.id] || 0;
+      const stock = Store.stockOf(m.id);
+      return `<div class="pick-row${n ? ' on' : ''}" data-id="${m.id}" role="button" tabindex="0">
+        <span class="pick-ico">${ICO.svg((D.CATEGORIES.find(c => c.id === m.cat) || {}).icon || 'cube', 16)}</span>
+        <div style="min-width:0;flex:1">
+          <div class="pick-name">${U.esc(m.name)}</div>
+          <div class="pick-sub">${U.money(m.price)} · ${stock === 0 ? '缺货' : '库存 ' + U.int(stock)}${m.req.bus && m.req.bus !== 'none' ? ' · ' + m.req.bus.toUpperCase() : ''}</div>
+        </div>
+        <span class="btn ${n ? 'btn-accent' : 'btn-ghost'} btn-sm" style="pointer-events:none;padding:4px 10px">${n ? '×' + n : '+'}</span>
+      </div>`;
+    }).join('') : UI.empty('没有匹配的模块', '换个关键词，或切换到其他分类。');
+
+    U.$$('#pickList .pick-row').forEach(r => U.on(r, 'click', () => {
+      const id = r.getAttribute('data-id');
+      const m = D.MODULE_MAP[id];
+      const cur = U.qtyOf(scheme, id);
+      if (m.cat === 'board' && cur === 0) {
+        const old = scheme.items.map(i => D.MODULE_MAP[i.id]).find(x => x && x.cat === 'board');
+        if (old) UI.toast(`已用「${m.name}」替换主控「${old.name}」`, 'warn', 2800);
+      }
+      scheme = Store.addItem(id, 1);
+      Heat.record('add', id);
+      renderAll();
+    }));
+  }
+
+  /* ================= 渲染：方案分区 ================= */
+  function renderZones() {
+    const byCat = {};
+    scheme.items.forEach(i => {
+      const m = D.MODULE_MAP[i.id]; if (!m) return;
+      (byCat[m.cat] = byCat[m.cat] || []).push({ m, qty: i.qty });
+    });
+
+    U.$('#zones').innerHTML = ZONE_ORDER.map(catId => {
+      const cat = D.CATEGORIES.find(c => c.id === catId);
+      const arr = byCat[catId] || [];
+      const lines = arr.map(({ m, qty }) => {
+        const stock = Store.stockOf(m.id);
+        return `<div class="scheme-line" data-id="${m.id}">
+          <span class="si">${ICO.svg(cat.icon, 16)}</span>
+          <div style="min-width:0">
+            <a href="module.html?id=${m.id}" style="font-size:.85rem;font-weight:500;color:var(--ink);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${U.esc(m.name)}</a>
+            <div class="mono" style="font-size:.66rem;color:var(--faint);margin-top:2px">
+              ${U.esc(m.brand)} · ${U.money(m.price)}${stock === 0 ? ' · <span style="color:var(--danger)">缺货</span>' : ''}${m.req.driver ? ' · 需驱动' : ''}
+            </div>
+          </div>
+          <span class="qty-ctl">
+            <button data-act="dec" aria-label="减少">${ICO.svg('minus', 12)}</button>
+            <span>${qty}</span>
+            <button data-act="inc" aria-label="增加">${ICO.svg('plus', 12)}</button>
+          </span>
+          <div class="row" style="gap:4px">
+            <span class="mono" style="font-size:.82rem;font-weight:600;min-width:62px;text-align:right">${U.money(m.price * qty)}</span>
+            ${catId !== 'board' ? `<button class="icon-btn" data-act="swap" title="替换同类模块" style="width:26px;height:26px">${ICO.svg('swap', 13)}</button>` : ''}
+            <button class="icon-btn" data-act="del" title="移除" style="width:26px;height:26px">${ICO.svg('close', 13)}</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      return `<div class="zone">
+        <div class="zone-head">
+          <span style="color:var(--accent-deep)">${ICO.svg(cat.icon, 17)}</span>
+          <div style="flex:1;min-width:0">
+            <h4>${cat.name}</h4>
+            <div class="mono" style="font-size:.63rem;color:var(--faint)">${ZONE_HINT[catId]}</div>
+          </div>
+          <span class="tag ${arr.length ? 'tag-accent' : 'tag-line'}">${arr.length ? arr.reduce((a, x) => a + x.qty, 0) + ' 件' : '未选'}</span>
+        </div>
+        <div class="zone-body">
+          ${lines || `<div class="zone-empty">${catId === 'board' ? '还没有主控。先选一块开发板，它是兼容性判断的基准。' : '尚未添加模块'}</div>`}
+        </div>
+      </div>`;
+    }).join('');
+
+    U.$$('#zones .scheme-line').forEach(line => {
+      const id = line.getAttribute('data-id');
+      U.$$('[data-act]', line).forEach(b => U.on(b, 'click', e => {
+        e.preventDefault(); e.stopPropagation();
+        const act = b.getAttribute('data-act');
+        if (act === 'inc') scheme = Store.setQty(id, U.qtyOf(scheme, id) + 1);
+        else if (act === 'dec') scheme = Store.setQty(id, U.qtyOf(scheme, id) - 1);
+        else if (act === 'del') { scheme = Store.removeItem(id); UI.toast('已从方案中移除'); }
+        else if (act === 'swap') openReplace(id);
+        renderAll();
+      }));
+    });
+  }
+
+  /* ================= 渲染：服务选项 ================= */
+  function renderService() {
+    const s = scheme.service || {};
+    U.$('#serviceCard').innerHTML = `
+      <span class="card-meta">附加服务</span>
+      <div class="mt-16" style="display:flex;flex-direction:column;gap:11px">
+        <label class="check"><input type="checkbox" id="svcAsm" ${s.assembly ? 'checked' : ''}>
+          <span><b style="color:var(--ink)">代装配服务</b> <span class="mono" style="font-size:.7rem;color:var(--faint)">+${U.money(D.SHIPPING.assemblyFee)}</span><br>
+          <span style="font-size:.78rem">平台按方案焊接、烧录固件并整机通电测试后发货</span></span></label>
+        <label class="check"><input type="checkbox" id="svcRush" ${s.rush ? 'checked' : ''}>
+          <span><b style="color:var(--ink)">加急处理</b> <span class="mono" style="font-size:.7rem;color:var(--faint)">+${Math.round(D.SHIPPING.rushFeeRate * 100)}% 货值</span><br>
+          <span style="font-size:.78rem">${D.SHIPPING.etaDays.rush} 天发货（常规 ${D.SHIPPING.etaDays.normal} 天）</span></span></label>
+        <label class="check"><input type="checkbox" id="svcInv" ${s.invoice ? 'checked' : ''}>
+          <span><b style="color:var(--ink)">需要增值税发票</b><br>
+          <span style="font-size:.78rem">结算时填写抬头与税号</span></span></label>
+      </div>`;
+    const sync = () => {
+      scheme.service = {
+        assembly: U.$('#svcAsm').checked,
+        rush: U.$('#svcRush').checked,
+        invoice: U.$('#svcInv').checked,
+      };
+      scheme = Store.saveScheme(scheme);
+      renderSummary();
+    };
+    U.on(U.$('#svcAsm'), 'change', sync);
+    U.on(U.$('#svcRush'), 'change', sync);
+    U.on(U.$('#svcInv'), 'change', sync);
+  }
+
+  /* ================= 渲染：校验与汇总 ================= */
+  function renderSummary() {
+    const rep = Compat.evaluate(scheme);
+    const cost = rep.cost;
+
+    /* --- 结论 --- */
+    const V = {
+      empty: { cls: 'empty', ico: 'sliders', title: '方案还是空的', body: '从左侧选择模块开始。建议先确定主控开发板，它是全部兼容性判断的基准。' },
+      block: { cls: 'block', ico: 'warn', title: '存在阻断性问题', body: `有 ${rep.errors} 项冲突必须先解决，否则这套方案无法正常工作。` },
+      warn:  { cls: 'warn',  ico: 'info', title: '可以使用，但有提醒', body: `通过基本校验，有 ${rep.warnings} 项提醒建议处理。` },
+      ok:    { cls: 'ok',    ico: 'check', title: '校验全部通过', body: '总线、引脚、电平、地址、功耗与算力均无冲突，可以下单。' },
+    }[rep.verdict];
+    U.$('#verdictBox').innerHTML = `
+      <div class="verdict ${V.cls}">
+        <div class="verdict-title" style="color:${rep.verdict === 'block' ? 'var(--danger)' : rep.verdict === 'warn' ? 'var(--warn)' : rep.verdict === 'ok' ? 'var(--ok)' : 'var(--muted)'}">
+          ${ICO.svg(V.ico, 19)} ${V.title}
+        </div>
+        <p style="font-size:.82rem;color:var(--muted);margin:9px 0 0;line-height:1.6">${V.body}</p>
+        <div class="row row-wrap" style="gap:6px;margin-top:13px">
+          <span class="tag tag-line">${cost.kinds} 类模块</span>
+          <span class="tag tag-line">${cost.itemCount} 件</span>
+          <span class="tag tag-line">难度 ${rep.difficulty}/5</span>
+          <span class="tag tag-line">约 ${rep.hours} 小时</span>
+        </div>
+      </div>`;
+
+    /* --- 问题清单 --- */
+    U.$('#issueBox').innerHTML = `
+      <div class="spread"><span class="card-meta">兼容性报告</span>
+        <span class="mono" style="font-size:.68rem;color:var(--faint)">${rep.errors} 冲突 / ${rep.warnings} 提醒</span></div>
+      <div class="mt-16" style="display:flex;flex-direction:column;gap:9px">
+        ${rep.issues.length ? rep.issues.map(x => `
+          <div class="issue ${x.level === 'err' ? 'err' : (x.level === 'warn' ? 'warn' : 'ok')}">
+            <span class="issue-ico" style="color:${x.level === 'err' ? 'var(--danger)' : (x.level === 'warn' ? 'var(--warn)' : 'var(--ok)')}">${ICO.svg(x.level === 'err' ? 'warn' : (x.level === 'warn' ? 'info' : 'check'), 15)}</span>
+            <div style="min-width:0">
+              <span class="issue-title">${U.esc(x.title)} <span class="issue-code">${x.rule}</span></span>
+              <span class="issue-body">${U.esc(x.body)}</span>
+            </div>
+          </div>`).join('')
+        : `<div class="issue ok"><span class="issue-ico" style="color:var(--ok)">${ICO.svg('check', 15)}</span>
+            <div><span class="issue-title">暂无待处理事项</span><span class="issue-body">继续添加模块，校验会实时更新。</span></div></div>`}
+      </div>`;
+
+    /* --- 资源占用 --- */
+    const resRows = Compat.resourceTable(rep);
+    U.$('#resBox').innerHTML = `
+      <div class="spread"><span class="card-meta">资源占用</span>
+        <span class="mono" style="font-size:.68rem;color:var(--faint)">${rep.board ? U.esc(rep.board.name) : '未选主控'}</span></div>
+      <div class="mt-16">
+        ${resRows.length ? resRows.map(r => `
+          <div class="meter">
+            <div class="meter-top"><span>${r.label}${r.note ? `<span class="mono" style="font-size:.62rem;color:var(--ghost)"> ${r.note}</span>` : ''}</span>
+              <b style="color:${r.over ? 'var(--danger)' : 'var(--ink)'}">${r.need} / ${r.cap} ${r.unit}</b></div>
+            <div class="meter-bar ${r.over ? 'err' : (r.pct > 75 ? 'warn' : '')}"><i style="width:${r.pct}%"></i></div>
+          </div>`).join('')
+        : `<p class="mono" style="font-size:.76rem;color:var(--faint);margin:0">选择主控后显示引脚与总线占用</p>`}
+      </div>`;
+
+    /* --- 功耗预算 --- */
+    const pwrRows = Compat.powerTable(rep);
+    U.$('#pwrBox').innerHTML = `
+      <div class="spread"><span class="card-meta">功耗与供电预算</span>
+        <span class="mono" style="font-size:.68rem;color:var(--faint)">按峰值电流估算</span></div>
+      <div class="mt-16">
+        ${pwrRows.map(r => `
+          <div class="meter">
+            <div class="meter-top"><span>${r.label}</span>
+              <b style="color:${r.over ? 'var(--danger)' : 'var(--ink)'}">${r.need.toFixed(2)} / ${r.cap.toFixed(2)} A</b></div>
+            <div class="meter-bar ${r.over ? 'err' : (r.pct > 75 ? 'warn' : '')}"><i style="width:${r.pct}%"></i></div>
+          </div>`).join('')}
+        ${rep.rails.length ? `<div class="row row-wrap" style="gap:5px;margin-top:4px">
+          ${rep.rails.map(r => `<span class="tag tag-line">${r.rail}V 轨 ${r.amp.toFixed(2)} A</span>`).join('')}
+        </div>` : ''}
+        <div class="issue mt-16" style="background:var(--bg-sunken);border-color:transparent">
+          <span class="issue-ico" style="color:var(--accent-ink)">${ICO.svg('battery', 15)}</span>
+          <div><span class="issue-title">提示</span>
+          <span class="issue-body">舵机、电机、推杆等执行器的启动峰值远高于均值，务必独立供电并与主控共地。</span></div>
+        </div>
+      </div>`;
+
+    /* --- 成本 --- */
+    U.$('#costBox').innerHTML = `
+      <div class="spread"><span class="card-meta">成本汇总</span>
+        <span class="tag tag-accent">${D.SITE.currency}${cost.total.toFixed(2)}</span></div>
+      <div class="mt-16">
+        ${rep.items.map(({ m, qty }) => `
+          <div class="spread" style="padding:6px 0;border-bottom:1px solid var(--line)">
+            <span style="font-size:.8rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${U.esc(m.name)} <span class="mono" style="color:var(--faint)">×${qty}</span></span>
+            <span class="mono" style="font-size:.8rem;font-weight:600;white-space:nowrap;margin-left:10px">${U.money(m.price * qty)}</span>
+          </div>`).join('') || `<p class="mono" style="font-size:.76rem;color:var(--faint);margin:0">尚未选择模块</p>`}
+        <div class="spread" style="padding:8px 0 0">
+          <span style="font-size:.8rem;color:var(--muted)">模块小计</span>
+          <span class="mono" style="font-size:.82rem">${U.money(cost.subtotal)}</span>
+        </div>
+        ${cost.assembly ? `<div class="spread" style="padding:4px 0"><span style="font-size:.8rem;color:var(--muted)">代装配服务</span><span class="mono" style="font-size:.82rem">${U.money(cost.assembly)}</span></div>` : ''}
+        ${cost.rush ? `<div class="spread" style="padding:4px 0"><span style="font-size:.8rem;color:var(--muted)">加急处理</span><span class="mono" style="font-size:.82rem">${U.money(cost.rush)}</span></div>` : ''}
+        <div class="spread" style="padding:4px 0">
+          <span style="font-size:.8rem;color:var(--muted)">运费</span>
+          <span class="mono" style="font-size:.82rem">${cost.shipping ? U.money(cost.shipping) : '免运费'}</span>
+        </div>
+        <div class="spread" style="padding:11px 0 0;margin-top:7px;border-top:1px solid var(--line-mid)">
+          <span style="font-weight:600">应付合计</span>
+          <span class="mono" style="font-size:1.15rem;font-weight:700">${U.money(cost.total)}</span>
+        </div>
+      </div>`;
+
+    /* --- BOM 导出 --- */
+    U.$('#bomBox').innerHTML = `
+      <span class="card-meta">方案输出</span>
+      <div class="bom-actions mt-16">
+        <button class="btn btn-ghost btn-sm" id="expCsv">${ICO.svg('download', 14)} BOM CSV</button>
+        <button class="btn btn-ghost btn-sm" id="expJson">${ICO.svg('download', 14)} 方案 JSON</button>
+        <button class="btn btn-ghost btn-sm" id="copyText">${ICO.svg('doc', 14)} 复制清单</button>
+        <button class="btn btn-ghost btn-sm" id="printScheme">${ICO.svg('list', 14)} 打印配货单</button>
+      </div>`;
+
+    U.on(U.$('#expCsv'), 'click', exportCSV);
+    U.on(U.$('#expJson'), 'click', exportJSON);
+    U.on(U.$('#copyText'), 'click', copyText);
+    U.on(U.$('#printScheme'), 'click', () => window.print());
+
+    /* --- 页头信息 --- */
+    const upd = new Date(scheme.updatedAt || Date.now());
+    U.$('#schemeMeta').textContent =
+      `${scheme.id} · ${cost.kinds} 类 / ${cost.itemCount} 件 · 合计 ${U.money(cost.total)} · 更新于 ${U.date(upd.getTime(), true)}`;
+    U.$('#schemeName').value = scheme.name;
+    U.$('#tabCount').textContent = cost.itemCount;
+    const bc = U.$('#navCount'); if (bc) bc.textContent = cost.itemCount;
+
+    /* --- 结算按钮可用性 --- */
+    const btn = U.$('#toCheckout');
+    btn.disabled = !rep.items.length || rep.errors > 0;
+    btn.textContent = !rep.items.length ? '先生成方案' : (rep.errors > 0 ? `有 ${rep.errors} 项冲突待解决` : '生成方案并去结算 →');
+  }
+
+  /* ================= 导出 ================= */
+  function exportCSV() {
+    const rep = Compat.evaluate(scheme);
+    const rows = [['序号', '分类', '模块名称', '英文名', '品牌', '单价(元)', '数量', '小计(元)', '接口', '供电', '占用IO']];
+    rep.items.forEach(({ m, qty }, i) => {
+      const cat = D.CATEGORIES.find(c => c.id === m.cat);
+      rows.push([i + 1, cat.name, m.name, m.en, m.brand, m.price.toFixed(2), qty,
+        (m.price * qty).toFixed(2), m.req.bus || '—', m.req.v || '—', m.req.pins || 0]);
+    });
+    rows.push([], ['', '', '模块小计', '', '', '', '', rep.cost.subtotal.toFixed(2)]);
+    if (rep.cost.assembly) rows.push(['', '', '代装配服务', '', '', '', '', rep.cost.assembly.toFixed(2)]);
+    if (rep.cost.rush) rows.push(['', '', '加急处理', '', '', '', '', rep.cost.rush.toFixed(2)]);
+    rows.push(['', '', '运费', '', '', '', '', rep.cost.shipping.toFixed(2)]);
+    rows.push(['', '', '应付合计', '', '', '', '', rep.cost.total.toFixed(2)]);
+    const csv = '\uFEFF' + rows.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    U.download(`MOSAIC_BOM_${scheme.name}_${U.date(Date.now())}.csv`, csv, 'text/csv');
+    UI.toast('BOM CSV 已导出');
+  }
+
+  function exportJSON() {
+    const rep = Compat.evaluate(scheme);
+    const payload = {
+      platform: D.SITE.name, version: D.SITE.version, exportedAt: new Date().toISOString(),
+      scheme: { id: scheme.id, name: scheme.name, note: scheme.note, service: scheme.service },
+      items: rep.items.map(({ m, qty }) => ({ id: m.id, name: m.name, cat: m.cat, brand: m.brand, price: m.price, qty, sum: m.price * qty })),
+      cost: rep.cost,
+      validation: {
+        verdict: rep.verdict, errors: rep.errors, warnings: rep.warnings,
+        issues: rep.issues.map(x => ({ rule: x.rule, level: x.level, title: x.title, body: x.body })),
+        difficulty: rep.difficulty, estimatedHours: rep.hours,
+      },
+    };
+    U.download(`MOSAIC_Scheme_${scheme.name}_${U.date(Date.now())}.json`, JSON.stringify(payload, null, 2), 'application/json');
+    UI.toast('方案 JSON 已导出');
+  }
+
+  function copyText() {
+    const rep = Compat.evaluate(scheme);
+    const lines = [
+      `【${D.SITE.name} ${D.SITE.cn}】方案清单`,
+      `方案名：${scheme.name}`,
+      `编号：${scheme.id}`,
+      '',
+      ...rep.items.map(({ m, qty }, i) => `${i + 1}. ${m.name} × ${qty}  ${U.money(m.price * qty)}`),
+      '',
+      `模块小计：${U.money(rep.cost.subtotal)}`,
+      rep.cost.assembly ? `代装配服务：${U.money(rep.cost.assembly)}` : null,
+      rep.cost.rush ? `加急处理：${U.money(rep.cost.rush)}` : null,
+      `运费：${rep.cost.shipping ? U.money(rep.cost.shipping) : '免运费'}`,
+      `应付合计：${U.money(rep.cost.total)}`,
+      '',
+      `校验结论：${rep.verdict === 'ok' ? '全部通过' : rep.verdict === 'warn' ? `通过（${rep.warnings} 项提醒）` : `存在 ${rep.errors} 项冲突`}`,
+      `难度：${rep.difficulty}/5 · 预计装配 ${rep.hours} 小时`,
+    ].filter(x => x !== null).join('\n');
+    U.copy(lines).then(() => UI.toast('方案清单已复制'));
+  }
+
+  /* ================= 替换模块 ================= */
+  function openReplace(id) {
+    const m = D.MODULE_MAP[id];
+    replaceTarget = id;
+    const cat = D.CATEGORIES.find(c => c.id === m.cat);
+    U.$('#replaceHint').textContent = `当前为「${m.name}」（${U.money(m.price)}）。以下为同类替代模块，选择后立即替换并重新校验。`;
+    const list = D.MODULES.filter(x => x.cat === m.cat && x.id !== id)
+      .sort((a, b) => Math.abs(a.price - m.price) - Math.abs(b.price - m.price));
+    U.$('#replaceList').innerHTML = list.map(x => {
+      const { report } = Compat.checkOne(x.id, Object.assign({}, scheme, {
+        items: scheme.items.filter(i => i.id !== id).concat([{ id: x.id, qty: U.qtyOf(scheme, id) }]),
+      }));
+      const mine = report.issues.filter(z => (z.body || '').includes(x.name) || (z.title || '').includes(x.name));
+      const lvl = mine.some(z => z.level === 'err') ? 'err' : (mine.length ? 'warn' : 'ok');
+      return `<div class="pick-row" data-rid="${x.id}" role="button" tabindex="0">
+        <span class="pick-ico">${ICO.svg(cat.icon, 16)}</span>
+        <div style="flex:1;min-width:0">
+          <div class="pick-name">${U.esc(x.name)}</div>
+          <div class="pick-sub">${U.money(x.price)} · 库存 ${U.int(Store.stockOf(x.id))}${x.req.bus && x.req.bus !== 'none' ? ' · ' + x.req.bus.toUpperCase() : ''}</div>
+        </div>
+        <span class="tag ${lvl === 'err' ? 'tag-danger' : (lvl === 'warn' ? 'tag-warn' : 'tag-ok')}" style="white-space:nowrap">
+          ${lvl === 'err' ? '有冲突' : lvl === 'warn' ? '有提醒' : '兼容'}</span>
+      </div>`;
+    }).join('') || UI.empty('没有同类替代模块', '该分类下暂无其他可选模块。');
+
+    U.$$('#replaceList [data-rid]').forEach(r => U.on(r, 'click', () => {
+      const rid = r.getAttribute('data-rid');
+      const q = U.qtyOf(scheme, replaceTarget) || 1;
+      scheme = Store.removeItem(replaceTarget);
+      scheme = Store.addItem(rid, q);
+      UI.closeModal('replaceModal');
+      UI.toast(`已替换为「${D.MODULE_MAP[rid].name}」`);
+      renderAll();
+    }));
+    UI.openModal('replaceModal');
+  }
+
+  /* ================= 模板 ================= */
+  function openTpl() {
+    const list = Store.schemes();
+    const presets = [
+      { id: '__p1', name: '智能家居环境节点', items: [['esp32-s3-devkitc-1', 1], ['sht31', 1], ['sgp30', 1], ['bh1750', 1], ['oled-096-i2c', 1], ['psu-12v5a', 1], ['lm2596-dcdc', 1], ['case-3dprint', 1]] },
+      { id: '__p2', name: '两轮循迹小车', items: [['arduino-uno-r4-wifi', 1], ['n20-motor', 2], ['tb6612', 1], ['mpu6050', 1], ['hc-sr04', 1], ['vl53l0x', 1], ['oled-096-i2c', 1], ['battery-18650-2s', 1], ['bms-2s', 1], ['acrylic-base', 1], ['dupont-wires', 1]] },
+      { id: '__p3', name: 'LoRa 野外环境监测站', items: [['rpi-pico-2-w', 1], ['lora-sx1278', 1], ['sht31', 1], ['bmp280', 1], ['ds18b20', 2], ['solar-6v', 1], ['tp4056', 1], ['battery-18650-2s', 1], ['epaper-213', 1]] },
+      { id: '__p4', name: 'AI 视觉分拣台', items: [['rpi-5-8gb', 1], ['ov2640', 1], ['mg996r', 2], ['pca9685', 1], ['psu-12v5a', 1], ['lm2596-dcdc', 1], ['tft-st7796-35', 1], ['alu-profile-2020', 1]] },
+    ];
+    U.$('#tplList').innerHTML =
+      `<div class="card-meta" style="margin-bottom:10px">平台预设方案</div>` +
+      presets.map(p => {
+        const cost = p.items.reduce((a, [id, q]) => a + D.MODULE_MAP[id].price * q, 0);
+        return `<div class="pick-row" data-preset="${p.id}">
+          <span class="pick-ico">${ICO.svg('layers', 16)}</span>
+          <div style="flex:1;min-width:0">
+            <div class="pick-name">${p.name}</div>
+            <div class="pick-sub">${p.items.length} 类 · 约 ${U.money(cost)}</div>
+          </div>
+          <span class="tag tag-accent">载入</span>
+        </div>`;
+      }).join('') +
+      `<div class="card-meta" style="margin:18px 0 10px">我保存的模板 (${list.length})</div>` +
+      (list.length ? list.map(t => {
+        const cost = (t.items || []).reduce((a, i) => a + (D.MODULE_MAP[i.id] ? D.MODULE_MAP[i.id].price * i.qty : 0), 0);
+        return `<div class="pick-row" data-tpl="${t.id}">
+          <span class="pick-ico">${ICO.svg('doc', 16)}</span>
+          <div style="flex:1;min-width:0">
+            <div class="pick-name">${U.esc(t.name)}</div>
+            <div class="pick-sub">${(t.items || []).length} 类 · 约 ${U.money(cost)} · 保存于 ${U.date(t.savedAt)}</div>
+          </div>
+          <button class="icon-btn" data-del="${t.id}" title="删除模板" style="width:26px;height:26px">${ICO.svg('trash', 13)}</button>
+        </div>`;
+      }).join('') : `<p class="mono" style="font-size:.76rem;color:var(--faint);margin:0 0 0 4px">还没有保存过模板。在工作台点「存为模板」即可保存当前方案。</p>`);
+
+    U.$$('#tplList [data-preset]').forEach(r => U.on(r, 'click', () => {
+      const pid = r.getAttribute('data-preset');
+      const preset = presets.find(p => p.id === pid);
+      scheme = Store.resetScheme();
+      scheme.name = preset.name;
+      preset.items.forEach(([id, q]) => { scheme = Store.addItem(id, q); });
+      scheme = Store.saveScheme(scheme);
+      UI.closeModal('tplModal'); UI.toast(`已载入预设方案「${preset.name}」`);
+      renderAll();
+    }));
+    U.$$('#tplList [data-tpl]').forEach(r => U.on(r, 'click', e => {
+      if (e.target.closest('[data-del]')) return;
+      scheme = Store.loadTemplate(r.getAttribute('data-tpl'));
+      UI.closeModal('tplModal'); UI.toast('模板已载入');
+      renderAll();
+    }));
+    U.$$('#tplList [data-del]').forEach(b => U.on(b, 'click', e => {
+      e.stopPropagation();
+      Store.deleteTemplate(b.getAttribute('data-del'));
+      UI.toast('模板已删除'); openTpl();
+    }));
+    UI.openModal('tplModal');
+  }
+
+  /* ================= 全量渲染 ================= */
+  function renderAll() {
+    renderPickCats();
+    renderPickList();
+    renderZones();
+    renderService();
+    renderSummary();
+    UI.syncCount();
+  }
+
+  /* ================= 事件 ================= */
+  U.on(U.$('#pickQ'), 'input', U.debounce(e => { pickQ = e.target.value; renderPickList(); }, 240));
+  U.on(U.$('#schemeName'), 'change', e => {
+    scheme.name = e.target.value.trim() || '未命名方案';
+    scheme = Store.saveScheme(scheme);
+    UI.toast('方案名称已更新');
+  });
+  U.on(U.$('#renameBtn'), 'click', () => U.$('#schemeName').focus());
+  U.on(U.$('#resetAll'), 'click', () => {
+    if (!confirm('确定清空当前方案的全部模块？此操作不可撤销。')) return;
+    scheme = Store.resetScheme();
+    UI.toast('方案已清空'); renderAll();
+  });
+  U.on(U.$('#saveTpl'), 'click', () => {
+    if (!scheme.items.length) { UI.toast('方案为空，无法保存', 'warn'); return; }
+    Store.saveAsTemplate();
+    UI.toast(`已保存模板「${scheme.name}」`);
+  });
+  U.on(U.$('#loadTpl'), 'click', openTpl);
+  U.on(U.$('#tplClose'), 'click', () => UI.closeModal('tplModal'));
+  U.on(U.$('#replaceClose'), 'click', () => UI.closeModal('replaceModal'));
+  U.on(U.$('#toCheckout'), 'click', () => {
+    const rep = Compat.evaluate(scheme);
+    if (!rep.items.length) { UI.toast('请先添加模块', 'warn'); return; }
+    if (rep.errors) { UI.toast('请先解决兼容性冲突再结算', 'err'); return; }
+    Heat.record('order', rep.board ? rep.board.id : rep.items[0].m.id);
+    scheme = Store.saveScheme(scheme);
+    location.href = 'checkout.html';
+  });
+
+  /* 移动端分栏 */
+  U.$$('#bTabs button').forEach(b => U.on(b, 'click', () => {
+    U.$$('#bTabs button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    mobilePanel = b.getAttribute('data-panel');
+    ['pick', 'scheme', 'check'].forEach(pn => {
+      U.$('#col-' + pn).classList.toggle('active', pn === mobilePanel);
+    });
+  }));
+  function initTabs() {
+    const narrow = window.innerWidth <= 1080;
+    if (narrow) {
+      ['pick', 'scheme', 'check'].forEach(pn => U.$('#col-' + pn).classList.toggle('active', pn === mobilePanel));
+    } else {
+      ['pick', 'scheme', 'check'].forEach(pn => U.$('#col-' + pn).classList.add('active'));
+    }
+  }
+  U.on(window, 'resize', initTabs);
+  initTabs();
+
+  renderAll();
+  UI.hydrateIcons();
+})();
+</script>
+</body>
+</html>

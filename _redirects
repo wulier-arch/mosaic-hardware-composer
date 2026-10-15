@@ -1,0 +1,4 @@
+# 旧的支付回调路径兼容（如曾用 /pay/notify）
+/pay/notify  /api/pay/mock/notify  302
+
+# SPA 兜底：未命中的静态路径交给 404 页面

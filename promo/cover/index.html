@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>MOSAIC · 封面生成</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Instrument+Serif&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { overflow: hidden; background: #06060a; }
+  body { font-family: "Archivo", "Inter", -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+         color: #f2f1ee; -webkit-font-smoothing: antialiased; }
+  .mono { font-family: "Geist Mono", ui-monospace, Menlo, monospace; }
+  .serif { font-family: "Instrument Serif", "Songti SC", Georgia, serif; font-weight: 400; }
+
+  #cover { position: relative; overflow: hidden; }
+
+  /* 背景 */
+  #bg { position: absolute; inset: 0;
+    background: radial-gradient(ellipse 66% 62% at 62% 46%, #191324 0%, #0b0a11 48%, #06060a 100%); }
+  #grid { position: absolute; inset: -30%;
+    background-image: linear-gradient(rgba(167,139,250,.055) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(167,139,250,.055) 1px, transparent 1px);
+    background-size: 92px 92px;
+    mask-image: radial-gradient(ellipse 50% 54% at 62% 46%, #000 10%, transparent 72%);
+    -webkit-mask-image: radial-gradient(ellipse 50% 54% at 62% 46%, #000 10%, transparent 72%); }
+  #glow { position: absolute; inset: 0;
+    background: radial-gradient(ellipse 40% 46% at 70% 40%, rgba(167,139,250,.26), transparent 68%),
+                radial-gradient(ellipse 34% 36% at 18% 84%, rgba(45,129,255,.14), transparent 70%); }
+
+  /* 左侧文案 */
+  #left { position: absolute; z-index: 10; }
+  .brand { display: flex; align-items: center; gap: 13px; }
+  .brand .mark { width: 46px; height: 46px; border-radius: 12px; background: #101014;
+    display: grid; place-items: center; box-shadow: 0 0 0 1.5px #a78bfa, 0 0 30px rgba(167,139,250,.5); flex: none; }
+  .brand .nm { font-size: 27px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+  .brand .nm em { font-style: normal; color: #a78bfa; }
+  .brand .sb { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .2em;
+    color: rgba(242,241,238,.42); margin-top: 5px; }
+
+  .eyebrow { display: inline-flex; align-items: center; gap: 9px; margin-top: 34px;
+    font-family: "Geist Mono", monospace; font-size: 13px; letter-spacing: .2em;
+    color: #cbb8ff; border: 1px solid rgba(167,139,250,.45); background: rgba(167,139,250,.12);
+    padding: 8px 16px; border-radius: 999px; }
+  .eyebrow i { width: 7px; height: 7px; border-radius: 50%; background: #a78bfa;
+    box-shadow: 0 0 12px #a78bfa; font-style: normal; }
+
+  h1 { font-size: 88px; line-height: 1.04; letter-spacing: -.035em; font-weight: 400; margin-top: 26px; }
+  h1 b { font-weight: 400; color: #a78bfa; }
+  .sub { font-size: 25px; color: rgba(242,241,238,.62); margin-top: 24px; letter-spacing: .01em; }
+
+  .stats { display: flex; gap: 34px; margin-top: 40px; }
+  .stats .s .v { font-family: "Geist Mono", monospace; font-size: 34px; font-weight: 600;
+    letter-spacing: -.02em; line-height: 1; }
+  .stats .s .k { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .14em;
+    color: rgba(242,241,238,.4); margin-top: 9px; }
+
+  .tags { display: flex; gap: 10px; margin-top: 34px; flex-wrap: wrap; }
+  .tags span { font-family: "Geist Mono", monospace; font-size: 13px; letter-spacing: .1em;
+    padding: 9px 17px; border-radius: 999px; border: 1px solid rgba(167,139,250,.42);
+    background: rgba(167,139,250,.10); color: #d9cdfb; }
+
+  /* 右侧产品画面 */
+  #right { position: absolute; z-index: 5; perspective: 1700px; }
+  #stage { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+  .plane { position: absolute; overflow: hidden; border-radius: 14px; background: #f2f1ee;
+    box-shadow: 0 50px 120px rgba(0,0,0,.72), 0 0 0 1px rgba(167,139,250,.36), 0 0 90px rgba(167,139,250,.22); }
+  .plane .bar { position: absolute; left: 0; right: 0; top: 0; height: 28px;
+    background: rgba(16,16,20,.88); display: flex; align-items: center; gap: 8px; padding: 0 13px; z-index: 3; }
+  .plane .bar i { width: 9px; height: 9px; border-radius: 50%; background: rgba(242,241,238,.24); }
+  .plane .bar i:first-child { background: #a78bfa; }
+  .plane .bar span { margin-left: 9px; font-family: "Geist Mono", monospace; font-size: 11px;
+    letter-spacing: .1em; color: rgba(242,241,238,.5); }
+  .plane img { position: absolute; left: 0; display: block; width: 100%; }
+
+  /* 浮层标签 */
+  .float { position: absolute; z-index: 20; padding: 12px 17px; border-radius: 11px;
+    background: linear-gradient(140deg, rgba(62,48,96,.97), rgba(30,24,46,.97));
+    border: 1px solid rgba(167,139,250,.7);
+    box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 34px rgba(167,139,250,.24); }
+  .float .nm { font-size: 17px; font-weight: 600; }
+  .float .sb { font-family: "Geist Mono", monospace; font-size: 11.5px; color: rgba(242,241,238,.52); margin-top: 4px; }
+
+  .okbadge { position: absolute; z-index: 22; display: flex; align-items: center; gap: 11px;
+    padding: 13px 20px; border-radius: 12px;
+    background: linear-gradient(140deg, rgba(22,52,38,.97), rgba(14,30,24,.97));
+    border: 1px solid rgba(74,222,128,.65); box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 36px rgba(74,222,128,.26); }
+  .okbadge .t { font-size: 18px; font-weight: 600; color: #86efac; }
+  .okbadge .s { font-family: "Geist Mono", monospace; font-size: 11.5px; color: rgba(134,239,172,.68); margin-top: 3px; }
+
+  /* 竖版适配 */
+  body.vert #left { left: 78px; top: 74px; }
+  body.vert h1 { font-size: 92px; }
+  body.vert .sub { font-size: 26px; }
+  body.vert #right { left: 60px; top: 560px; }
+  body.vert #left::before { content: ""; position: absolute; left: -78px; top: -74px;
+    width: 1080px; height: 640px; z-index: -1;
+    background: linear-gradient(180deg, rgba(6,6,10,.92) 0%, rgba(6,6,10,.72) 62%, rgba(6,6,10,0) 100%); }
+</style>
+</head>
+<body>
+<div id="cover">
+  <div id="bg"><div id="grid"></div><div id="glow"></div></div>
+
+  <div id="left">
+    <div class="brand">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+          <rect x="3" y="3" width="8" height="8" rx="1.4" fill="#a78bfa"/>
+          <rect x="13" y="3" width="8" height="8" rx="1.4" fill="#f2f1ee" fill-opacity=".55"/>
+          <rect x="3" y="13" width="8" height="8" rx="1.4" fill="#f2f1ee" fill-opacity=".55"/>
+          <rect x="13" y="13" width="8" height="8" rx="1.4" fill="#2d81ff"/>
+        </svg>
+      </span>
+      <span>
+        <span class="nm">MOS<em>A</em>IC</span>
+        <span class="sb">拼造 · HARDWARE COMPOSER</span>
+      </span>
+    </div>
+
+    <div class="eyebrow"><i></i> 在线选型 · 实时校验 · 一键下单</div>
+
+    <h1 class="serif">把模块，<br>拼成<b>你想要</b>的硬件。</h1>
+
+    <div class="sub">86 个开发板 / 传感器 / 电机模块，9 条兼容性规则实时把关</div>
+
+    <div class="stats">
+      <div class="s"><div class="v">86</div><div class="k">在售模块</div></div>
+      <div class="s"><div class="v">8</div><div class="k">硬件分类</div></div>
+      <div class="s"><div class="v">9</div><div class="k">校验规则</div></div>
+      <div class="s"><div class="v">30s</div><div class="k">演示时长</div></div>
+    </div>
+
+    <div class="tags">
+      <span>微信支付</span><span>支付宝</span><span>GitHub Pages</span><span>Vercel</span><span>Cloudflare</span>
+    </div>
+  </div>
+
+  <div id="right">
+    <div id="stage">
+      <div class="plane" id="pl-main">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / builder.html</span></div>
+        <img id="img-main" src="site/builder-check.jpg" alt="">
+      </div>
+      <div class="plane" id="pl-mini">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / pay.html</span></div>
+        <img id="img-mini" src="site/pay-qr.jpg" alt="">
+      </div>
+    </div>
+
+    <div class="float" id="f1"><div class="nm">ESP32-S3-DevKitC-1</div><div class="sb">主控 · 3.3V · 45 GPIO</div></div>
+    <div class="float" id="f2"><div class="nm">SHT31 高精度温湿度</div><div class="sb">I2C 0x44 · ±0.3°C</div></div>
+    <div class="float" id="f3"><div class="nm">LoRa SX1278 433MHz</div><div class="sb">SPI · 视距 3–5 km</div></div>
+    <div class="okbadge" id="f4">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#4ade80" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M7.8 12.3l2.9 2.9 5.5-6"/></svg>
+      <span><span class="t">校验全部通过</span><br><span class="s">引脚 · 电平 · 地址 · 功耗 · 算力</span></span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 封面生成：通过 URL hash 指定尺寸，例如 #1920x1080 / #1080x1440 / #1280x720 */
+const [, sizeStr] = location.hash.match(/#(\d+x\d+)/) || [];
+const [W, H] = (sizeStr || '1920x1080').split('x').map(Number);
+const VERT = H > W;
+
+const cover = document.getElementById('cover');
+cover.style.width = W + 'px';
+cover.style.height = H + 'px';
+document.documentElement.style.width = W + 'px';
+document.documentElement.style.height = H + 'px';
+document.body.style.width = W + 'px';
+document.body.style.height = H + 'px';
+if (VERT) document.body.classList.add('vert');
+
+const k = W / 1920;                    // 横版以 1920 宽为基准等比缩放
+
+/* ---- 左侧文案 ---- */
+const left = document.getElementById('left');
+if (!VERT) {
+  left.style.left = Math.round(104 * k) + 'px';
+  left.style.top = Math.round(92 * k) + 'px';
+  left.style.width = Math.round(700 * k) + 'px';
+  const S = (sel, base) => { const e = document.querySelector(sel); if (e) e.style.fontSize = Math.round(base * k) + 'px'; };
+  S('.brand .nm', 25); S('.brand .sb', 11.5); S('.eyebrow', 12.5); S('h1', 74); S('.sub', 21.5);
+  document.querySelector('.brand .mark').style.width = Math.round(46 * k) + 'px';
+  document.querySelector('.brand .mark').style.height = Math.round(46 * k) + 'px';
+  document.querySelectorAll('.stats .s .v').forEach(e => e.style.fontSize = Math.round(30 * k) + 'px');
+  document.querySelectorAll('.stats .s .k').forEach(e => e.style.fontSize = Math.round(12 * k) + 'px');
+  document.querySelectorAll('.tags span').forEach(e => e.style.fontSize = Math.round(12 * k) + 'px');
+  document.querySelector('.stats').style.marginTop = Math.round(40 * k) + 'px';
+  document.querySelector('.tags').style.marginTop = Math.round(34 * k) + 'px';
+  document.querySelector('.eyebrow').style.marginTop = Math.round(34 * k) + 'px';
+  document.querySelector('h1').style.marginTop = Math.round(26 * k) + 'px';
+  document.querySelector('.sub').style.marginTop = Math.round(24 * k) + 'px';
+}
+
+/* ---- 右侧产品画面 ---- */
+const right = document.getElementById('right');
+const stage = document.getElementById('stage');
+const plMain = document.getElementById('pl-main');
+const plMini = document.getElementById('pl-mini');
+const imgMain = document.getElementById('img-main');
+const imgMini = document.getElementById('img-mini');
+
+const MW = VERT ? Math.round(W * 1.10) : Math.round(1004 * k);
+const MH = Math.round(MW * 0.62);
+plMain.style.width = MW + 'px';
+plMain.style.height = MH + 'px';
+imgMain.style.top = '28px';
+
+const SW = Math.round(MW * 0.50);
+const SH = Math.round(SW * 0.62);
+plMini.style.width = SW + 'px';
+plMini.style.height = SH + 'px';
+imgMini.style.top = '28px';
+
+const F = (id, x, y, z) => {
+  const e = document.getElementById(id);
+  e.style.left = Math.round(x) + 'px';
+  e.style.top = Math.round(y) + 'px';
+  e.style.zIndex = z || 20;
+};
+
+if (VERT) {
+  right.style.left = '0px';
+  right.style.width = W + 'px';
+  right.style.height = H + 'px';
+  stage.style.left = '0px'; stage.style.top = '0px';
+  // 主平面左右各溢出一点，填满竖屏下部
+  plMain.style.transform =
+    `translate3d(${Math.round(-W * 0.055)}px, 0px, 0) rotateY(-11deg) rotateX(5deg)`;
+  plMini.style.transform =
+    `translate3d(${Math.round(W * 0.30)}px, ${Math.round(MH * 1.02)}px, 240px) rotateY(-11deg) rotateX(5deg)`;
+  // 舞台顶部不按比例猜，等字体就绪后按文案实际高度定位（见下方 ready 回调）
+  window.__vertNeedsLayout = true;
+} else {
+  // 产品舞台：主平面偏右上，右下角让出小窗，右侧留出浮标带
+  right.style.left = '0px';
+  right.style.top = '0px';
+  right.style.width = W + 'px';
+  right.style.height = H + 'px';
+  stage.style.left = Math.round(864 * k) + 'px';
+  stage.style.top = Math.round(148 * k) + 'px';
+  plMain.style.transform = `rotateY(-15deg) rotateX(6deg)`;
+  plMini.style.transform =
+    `translate3d(${Math.round(MW * 0.52)}px, ${Math.round(MH * 1.06)}px, 300px) rotateY(-15deg) rotateX(6deg)`;
+  // 浮标挂在平面四角外侧，不遮挡界面关键信息
+  F('f4', 864 * k, 94 * k, 24);                       // 绿标：压在主平面上沿，指向校验结论
+  F('f1', 700 * k, 322 * k, 26);                      // 主控：挂在平面左缘外
+  F('f2', 1616 * k, 520 * k, 26);                     // 传感器：挂在右侧
+  F('f3', 742 * k, 736 * k, 26);                      // LoRa：挂在左下
+}
+/* ---- 等图片与字体就绪 ---- */
+const imgs = [...document.images];
+Promise.all([
+  Promise.all(imgs.map(im => im.complete ? 0 : new Promise(r => { im.onload = r; im.onerror = r; }))),
+  document.fonts ? document.fonts.ready : Promise.resolve(),
+]).then(() => {
+  // 平面内图片按 cover 裁切，只露出界面主体
+  [['pl-main', imgMain], ['pl-mini', imgMini]].forEach(([pid, im]) => {
+    const pl = document.getElementById(pid);
+    const pw = pl.offsetWidth, ph = pl.offsetHeight - 28;
+    const s = Math.max(pw / im.naturalWidth, ph / im.naturalHeight);
+    im.style.width = Math.round(im.naturalWidth * s) + 'px';
+    im.style.height = Math.round(im.naturalHeight * s) + 'px';
+    im.style.left = Math.round((pw - im.naturalWidth * s) / 2) + 'px';
+  });
+  // 竖版：按左侧文案的实际底边决定产品舞台位置，避免压住数据行与标签
+  if (VERT) {
+    const lb = document.getElementById('left').getBoundingClientRect().bottom;
+    const top = Math.max(Math.round(H * 0.26), Math.round(lb + 26));
+    right.style.top = top + 'px';
+    F('f4', W * 0.055, top + 6, 24);
+    F('f1', W * 0.035, top + 122, 26);
+    F('f2', W * 0.520, top + 306, 26);
+    F('f3', W * 0.045, top + 630, 26);
+  }
+  window.__ready = true;
+});
+</script>
+</body>
+</html>

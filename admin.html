@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>后台处理 · MOSAIC 拼造</title>
+<meta name="theme-color" content="#f2f1ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23101014'/%3E%3Crect x='4' y='4' width='7' height='7' rx='1.5' fill='%23a78bfa'/%3E%3Crect x='13' y='13' width='7' height='7' rx='1.5' fill='%232d81ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<div id="navHost"></div>
+
+<header class="page-head">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">首页</a><span>/</span>后台处理</div>
+    <div class="spread" style="align-items:flex-end;flex-wrap:wrap;gap:18px">
+      <div>
+        <span class="sec-kicker">Operations console</span>
+        <h1 class="serif" style="font-size:clamp(1.6rem,3.4vw,2.4rem)">订单处理后台</h1>
+        <p class="sec-lead mt-8">确认收款 → 备货 → 录入快递单号发货 → 完成。状态变更实时同步到前台订单页。</p>
+      </div>
+      <div class="row row-wrap" style="gap:8px" id="adminBar"></div>
+    </div>
+  </div>
+</header>
+
+<main class="section" style="padding-top:28px">
+  <div class="wrap" id="adminWrap"></div>
+</main>
+
+<!-- 订单处理抽屉 -->
+<div class="drawer" id="orderDrawer" role="dialog" aria-modal="true" aria-labelledby="odTitle">
+  <div class="drawer-head">
+    <div>
+      <span class="card-meta">Process order</span>
+      <h3 id="odTitle" style="font-size:1.02rem;margin-top:3px">处理订单</h3>
+    </div>
+    <button class="icon-btn" id="odClose" aria-label="关闭"><span data-ico="close" data-size="15"></span></button>
+  </div>
+  <div class="drawer-body" id="odBody"></div>
+  <div class="drawer-foot" id="odFoot"></div>
+</div>
+
+<!-- 发货弹层 -->
+<div class="modal" id="shipModal" role="dialog" aria-modal="true" aria-labelledby="shipTitle">
+  <div class="spread" style="margin-bottom:14px">
+    <div>
+      <span class="card-meta">Ship order</span>
+      <h3 id="shipTitle" style="font-size:1.08rem;margin-top:3px">录入发货信息</h3>
+    </div>
+    <button class="icon-btn" id="shipClose" aria-label="关闭"><span data-ico="close" data-size="15"></span></button>
+  </div>
+  <div class="field-grid">
+    <label class="field">
+      <span class="field-label">快递公司 <span class="req">*</span></span>
+      <select class="select" id="carrier">
+        <option value="顺丰速运">顺丰速运</option>
+        <option value="京东物流">京东物流</option>
+        <option value="中通快递">中通快递</option>
+        <option value="圆通速递">圆通速递</option>
+        <option value="韵达快递">韵达快递</option>
+        <option value="申通快递">申通快递</option>
+        <option value="EMS">EMS</option>
+      </select>
+    </label>
+    <label class="field" id="f-track">
+      <span class="field-label">快递单号 <span class="req">*</span></span>
+      <input class="input" id="tracking" placeholder="如 SF1234567890123">
+      <span class="field-err">请填写快递单号</span>
+    </label>
+  </div>
+  <label class="field">
+    <span class="field-label">发货备注</span>
+    <input class="input" id="shipNote" placeholder="如：已含装配与固件烧录">
+  </label>
+  <div class="row" style="gap:8px;margin-top:6px">
+    <button class="btn btn-primary" style="flex:1" id="shipConfirm">确认发货</button>
+    <button class="btn btn-quiet" id="shipCancel">取消</button>
+  </div>
+</div>
+
+<div id="footHost"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/core.js"></script>
+<script>
+(function () {
+  const { U, ICO, D, UI, Store, Heat } = window.Mosaic;
+  UI.mount('admin.html');
+
+  const wrap = U.$('#adminWrap');
+  let tab = 'orders';
+  let stateFilter = 'all';
+  let q = '';
+  let sortKey = 'createdAt';
+  let selected = new Set();
+  let shipTarget = null;
+
+  /* ================= 登录门 ================= */
+  if (!Store.adminIn()) { renderLogin(); UI.hydrateIcons(); return; }
+
+  function renderLogin() {
+    U.$('#adminBar').innerHTML = '';
+    wrap.innerHTML = `
+      <div class="card card-pad-lg" style="max-width:440px;margin:40px auto">
+        <div class="row" style="gap:11px;align-items:center;margin-bottom:6px">
+          <span style="width:38px;height:38px;border-radius:10px;background:var(--invert-bg);color:var(--accent);display:grid;place-items:center">
+            ${ICO.svg('lock', 19)}</span>
+          <div><span class="card-meta">Restricted</span>
+            <h3 style="font-size:1.05rem;margin-top:2px">后台访问口令</h3></div>
+        </div>
+        <p class="sec-lead" style="font-size:.85rem;margin-top:12px">
+          后台包含订单流转与库存操作，需要口令进入。演示环境口令为
+          <code style="background:var(--bg-sunken);padding:2px 6px;border-radius:4px">mosaic-admin</code>。
+        </p>
+        <label class="field mt-16" id="f-pwd">
+          <span class="field-label">口令 <span class="req">*</span></span>
+          <input class="input" id="pwd" type="password" placeholder="输入后台口令" autocomplete="current-password">
+          <span class="field-err">口令不正确</span>
+        </label>
+        <button class="btn btn-primary btn-block" id="loginBtn">进入后台</button>
+        <div class="mono mt-16" style="font-size:.68rem;color:var(--faint);line-height:1.7">
+          生产环境请把校验移到服务端：<br>
+          POST /api/admin/login → 校验口令并下发 HttpOnly 会话 Cookie<br>
+          所有写操作接口均需校验会话与角色权限。
+        </div>
+      </div>`;
+    const doLogin = () => {
+      const v = U.$('#pwd').value;
+      if (Store.adminLogin(v)) { UI.toast('登录成功', 'ok'); location.reload(); }
+      else { U.$('#f-pwd').classList.add('invalid'); UI.toast('口令不正确', 'err'); }
+    };
+    U.on(U.$('#loginBtn'), 'click', doLogin);
+    U.on(U.$('#pwd'), 'keydown', e => { if (e.key === 'Enter') doLogin(); });
+  }
+
+  U.$('#adminBar').innerHTML = `
+    <span class="tag tag-ok"><span class="dot"></span>已登录</span>
+    <button class="btn btn-ghost btn-sm" id="expOrders">${ICO.svg('download', 14)} 导出订单</button>
+    <button class="btn btn-ghost btn-sm" id="expInv">${ICO.svg('box', 14)} 导出库存</button>
+    <button class="btn btn-quiet btn-sm" id="logout">退出</button>`;
+
+  /* ================= 渲染主界面 ================= */
+  function shell() {
+    wrap.innerHTML = `
+      <div class="grid-4 card mb-24" id="kpi" style="border-radius:var(--radius-lg)"></div>
+
+      <div class="row row-wrap mb-16" style="gap:10px;justify-content:space-between">
+        <div class="switch-group" id="tabs" role="tablist">
+          <button class="${tab === 'orders' ? 'on' : ''}" data-tab="orders" role="tab">订单处理</button>
+          <button class="${tab === 'inventory' ? 'on' : ''}" data-tab="inventory" role="tab">库存管理</button>
+          <button class="${tab === 'heat' ? 'on' : ''}" data-tab="heat" role="tab">热度与埋点</button>
+        </div>
+        <div class="row row-wrap" style="gap:9px">
+          <input class="input input-sm" id="q" placeholder="搜索订单号 / 收货人 / 手机号" style="width:230px" value="${U.esc(q)}">
+          <select class="select input-sm" id="sortSel" style="width:auto">
+            <option value="createdAt">按下单时间</option>
+            <option value="amount">按金额</option>
+            <option value="state">按状态</option>
+          </select>
+          <button class="btn btn-quiet btn-sm" id="refresh">${ICO.svg('refresh', 14)} 刷新</button>
+        </div>
+      </div>
+
+      <div id="tabBody"></div>`;
+    bindShell();
+    renderKPI();
+    renderTab();
+  }
+
+  function bindShell() {
+    U.$$('#tabs button').forEach(b => U.on(b, 'click', () => {
+      tab = b.getAttribute('data-tab');
+      U.$$('#tabs button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      renderTab();
+    }));
+    U.on(U.$('#q'), 'input', U.debounce(e => { q = e.target.value; renderTab(); }, 240));
+    U.on(U.$('#sortSel'), 'change', e => { sortKey = e.target.value; renderTab(); });
+    U.on(U.$('#refresh'), 'click', () => { renderKPI(); renderTab(); UI.toast('已刷新'); });
+    U.on(U.$('#logout'), 'click', () => { Store.adminOut(); location.reload(); });
+    U.on(U.$('#expOrders'), 'click', exportOrders);
+    U.on(U.$('#expInv'), 'click', exportInventory);
+  }
+
+  /* ---------- KPI ---------- */
+  function renderKPI() {
+    const list = Store.orders();
+    const acc = {};
+    D.ORDER_STATES.forEach(s => { acc[s.id] = 0; });
+    list.forEach(o => { acc[o.state] = (acc[o.state] || 0) + 1; });
+    const gmv = list.filter(o => !['pending', 'cancelled', 'refunded'].includes(o.state)).reduce((a, o) => a + o.amount, 0);
+    const todo = acc.pending + acc.paid + acc.picking;
+    const cells = [
+      { k: '待处理', v: U.int(todo), s: `待付款 ${acc.pending} · 待备货 ${acc.paid} · 备货中 ${acc.picking}`, tone: todo ? 'var(--warn)' : 'var(--ok)' },
+      { k: '待发货', v: U.int(acc.picking), s: '备货完成后录入快递单号', tone: 'var(--accent-ink)' },
+      { k: '已发货', v: U.int(acc.shipped), s: '在途，等待用户确认收货', tone: 'var(--blue-ink)' },
+      { k: '成交金额', v: U.money(gmv), s: `已完成 ${acc.done} 单 · 退款 ${acc.refunded} 单`, tone: 'var(--ink)' },
+    ];
+    U.$('#kpi').innerHTML = cells.map(c => `
+      <div class="stat-cell">
+        <div class="card-meta">${c.k}</div>
+        <div class="mono" style="font-size:1.4rem;font-weight:700;letter-spacing:-.02em;margin:6px 0 2px;color:${c.tone}">${c.v}</div>
+        <div style="font-size:.73rem;color:var(--faint)">${c.s}</div>
+      </div>`).join('');
+  }
+
+  /* ---------- Tab 分发 ---------- */
+  function renderTab() {
+    if (tab === 'orders') renderOrders();
+    else if (tab === 'inventory') renderInventory();
+    else renderHeat();
+  }
+
+  /* ---------- 订单表 ---------- */
+  function orderList() {
+    let list = Store.orders();
+    if (stateFilter !== 'all') list = list.filter(o => o.state === stateFilter);
+    if (q.trim()) {
+      const t = q.trim().toLowerCase();
+      list = list.filter(o => o.no.toLowerCase().includes(t) || (o.contact.name || '').toLowerCase().includes(t)
+        || (o.contact.phone || '').includes(t) || (o.schemeName || '').toLowerCase().includes(t));
+    }
+    const idx = Object.fromEntries(D.ORDER_STATES.map((s, i) => [s.id, i]));
+    return list.sort((a, b) => {
+      if (sortKey === 'amount') return b.amount - a.amount;
+      if (sortKey === 'state') return (idx[a.state] || 0) - (idx[b.state] || 0);
+      return b.createdAt - a.createdAt;
+    });
+  }
+
+  function renderOrders() {
+    const list = orderList();
+    const counts = {};
+    Store.orders().forEach(o => { counts[o.state] = (counts[o.state] || 0) + 1; });
+
+    U.$('#tabBody').innerHTML = `
+      <div class="row row-wrap mb-16" style="gap:6px">
+        <button class="tag ${stateFilter === 'all' ? 'tag-accent' : 'tag-line'}" data-sf="all" style="cursor:pointer">全部 ${Store.orders().length}</button>
+        ${D.ORDER_STATES.map(s => `<button class="tag ${stateFilter === s.id ? 'tag-accent' : 'tag-line'}" data-sf="${s.id}" style="cursor:pointer">${s.name} ${counts[s.id] || 0}</button>`).join('')}
+      </div>
+
+      ${selected.size ? `<div class="card mb-16" style="padding:12px 16px;background:var(--accent-soft);border-color:rgba(167,139,250,.35)">
+        <div class="spread"><span style="font-size:.86rem">已选中 <b>${selected.size}</b> 笔订单</span>
+        <div class="row" style="gap:7px">
+          <button class="btn btn-ghost btn-sm" id="batchPick">批量转备货</button>
+          <button class="btn btn-quiet btn-sm" id="batchClear">取消选择</button>
+        </div></div></div>` : ''}
+
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:34px"><input type="checkbox" id="selAll" ${selected.size && selected.size === list.length ? 'checked' : ''} style="accent-color:var(--accent-deep)"></th>
+            <th>订单号 / 下单时间</th>
+            <th>方案</th>
+            <th>收货人</th>
+            <th>金额</th>
+            <th>状态</th>
+            <th>物流</th>
+            <th style="width:170px">操作</th>
+          </tr></thead>
+          <tbody>
+            ${list.length ? list.map(o => `
+              <tr data-oid="${o.id}">
+                <td><input type="checkbox" class="rowsel" data-id="${o.id}" ${selected.has(o.id) ? 'checked' : ''} style="accent-color:var(--accent-deep)"></td>
+                <td>
+                  <div class="mono" style="font-size:.78rem;font-weight:600">${o.no}</div>
+                  <div class="mono" style="font-size:.66rem;color:var(--faint)">${U.date(o.createdAt, true)}</div>
+                </td>
+                <td>
+                  <div style="font-size:.82rem;font-weight:500">${U.esc(o.schemeName || '硬件方案')}</div>
+                  <div class="mono" style="font-size:.66rem;color:var(--faint)">${o.cost.kinds} 类 / ${o.cost.itemCount} 件${o.service.assembly ? ' · 含装配' : ''}${o.service.rush ? ' · 加急' : ''}</div>
+                </td>
+                <td>
+                  <div style="font-size:.82rem">${U.esc(o.contact.name)}</div>
+                  <div class="mono" style="font-size:.66rem;color:var(--faint)">${U.esc(o.contact.phone)}</div>
+                </td>
+                <td class="tbl-num" style="font-weight:600">${U.money(o.amount)}</td>
+                <td>${UI.stateTag(o.state)}</td>
+                <td class="mono" style="font-size:.7rem;color:${o.tracking ? 'var(--ok)' : 'var(--faint)'}">${o.tracking ? U.esc(o.carrier || '') + '<br>' + U.esc(o.tracking) : '—'}</td>
+                <td>
+                  <div class="tbl-actions">
+                    ${(D.ORDER_ACTIONS[o.state] || []).map(a => `
+                      <button class="btn ${a.kind === 'danger' ? 'btn-danger' : (a.kind === 'primary' ? 'btn-primary' : 'btn-ghost')} btn-sm"
+                        data-act="${a.to}" data-id="${o.id}">${a.label}</button>`).join('')}
+                    <button class="btn btn-ghost btn-sm" data-act="detail" data-id="${o.id}">详情</button>
+                  </div>
+                </td>
+              </tr>`).join('')
+            : `<tr><td colspan="8">${UI.empty('没有符合条件的订单',
+                '调整状态筛选或清空搜索关键词。')}</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+      <div class="mono mt-16" style="font-size:.68rem;color:var(--faint)">
+        共 ${list.length} 笔 · 演示数据保存在本机 localStorage；生产环境由服务端数据库承载，前端改为请求 /api/admin/orders。
+      </div>`;
+
+    U.$$('#tabBody [data-sf]').forEach(b => U.on(b, 'click', () => {
+      stateFilter = b.getAttribute('data-sf'); renderOrders();
+    }));
+    U.$$('.rowsel').forEach(c => U.on(c, 'change', () => {
+      const id = c.getAttribute('data-id');
+      if (c.checked) selected.add(id); else selected.delete(id);
+      renderOrders();
+    }));
+    const sa = U.$('#selAll');
+    if (sa) U.on(sa, 'change', () => {
+      selected = sa.checked ? new Set(list.map(o => o.id)) : new Set();
+      renderOrders();
+    });
+    const bp = U.$('#batchPick');
+    if (bp) U.on(bp, 'click', () => {
+      let n = 0;
+      selected.forEach(id => {
+        const o = Store.order(id);
+        if (o && o.state === 'paid') { Store.setState(id, 'picking', '后台批量转入备货'); n++; }
+      });
+      selected.clear();
+      UI.toast(n ? `已将 ${n} 笔订单转入备货` : '选中的订单中没有「已付款」状态，无法转备货', n ? 'ok' : 'warn');
+      renderKPI(); renderOrders();
+    });
+    const bcl = U.$('#batchClear');
+    if (bcl) U.on(bcl, 'click', () => { selected.clear(); renderOrders(); });
+
+    U.$$('#tabBody [data-act]').forEach(b => U.on(b, 'click', () => {
+      const act = b.getAttribute('data-act');
+      const id = b.getAttribute('data-id');
+      if (act === 'detail') return openOrder(id);
+      if (act === 'shipped') return openShip(id);
+      doTransition(id, act);
+    }));
+    U.$$('#tabBody tr[data-oid]').forEach(tr => U.on(tr, 'click', e => {
+      if (e.target.closest('button, input')) return;
+      openOrder(tr.getAttribute('data-oid'));
+    }));
+  }
+
+  /* ---------- 状态流转 ---------- */
+  function doTransition(id, to) {
+    const o = Store.order(id);
+    if (!o) return;
+    const map = {
+      paid: ['确认收款', '后台确认收到款项'],
+      picking: ['开始备货', '已进入拣货与质检'],
+      done: ['标记完成', '订单已完成'],
+      cancelled: ['取消订单', '后台取消订单'],
+      refunded: ['发起退款', '已发起退款流程'],
+    };
+    if (to === 'cancelled' && !confirm('确定取消订单 ' + o.no + '？')) return;
+    if (to === 'refunded') {
+      if (!confirm('确定对该订单发起退款 ' + U.money(o.amount) + '？')) return;
+      /* 退款时把库存还回去（本地模拟） */
+      (o.lines || []).forEach(l => Store.stockDelta(l.id, l.qty));
+      Store.setState(id, 'refunded', '退款完成，库存已回滚', { refund: { at: Date.now(), amount: o.amount } });
+      UI.toast('已退款并回滚库存', 'ok');
+      renderKPI(); renderTab();
+      return;
+    }
+    Store.setState(id, to, map[to] ? map[to][1] : undefined);
+    UI.toast(map[to] ? map[to][0] + '成功' : '状态已更新', 'ok');
+    renderKPI(); renderTab();
+  }
+
+  /* ---------- 发货 ---------- */
+  function openShip(id) {
+    shipTarget = id;
+    const o = Store.order(id);
+    U.$('#shipTitle').textContent = '发货 · ' + o.no;
+    U.$('#tracking').value = '';
+    U.$('#shipNote').value = o.service.assembly ? '已含代装配与固件烧录' : '';
+    U.$('#f-track').classList.remove('invalid');
+    UI.openModal('shipModal');
+  }
+  U.on(U.$('#shipClose'), 'click', () => UI.closeModal('shipModal'));
+  U.on(U.$('#shipCancel'), 'click', () => UI.closeModal('shipModal'));
+  U.on(U.$('#shipConfirm'), 'click', () => {
+    const t = U.$('#tracking').value.trim();
+    if (t.length < 6) { U.$('#f-track').classList.add('invalid'); UI.toast('请填写有效的快递单号', 'err'); return; }
+    Store.setState(shipTarget, 'shipped', `已发货 · ${U.$('#carrier').value} ${t}`, {
+      tracking: t, carrier: U.$('#carrier').value,
+      shipNote: U.$('#shipNote').value.trim(),
+    });
+    UI.closeModal('shipModal');
+    UI.toast('发货成功，已同步到前台', 'ok');
+    renderKPI(); renderTab();
+  });
+
+  /* ---------- 订单详情抽屉 ---------- */
+  function openOrder(id) {
+    const o = Store.order(id);
+    if (!o) return;
+    U.$('#odTitle').textContent = '订单 ' + o.no;
+    const acts = D.ORDER_ACTIONS[o.state] || [];
+    U.$('#odBody').innerHTML = `
+      <div class="spread mb-16">${UI.stateTag(o.state)}
+        <span class="mono" style="font-size:.72rem;color:var(--faint)">${U.date(o.createdAt, true)}</span></div>
+
+      <span class="card-meta">状态时间线</span>
+      <div class="mt-16">${(o.timeline || []).map((t, i, arr) => {
+        const st = D.STATE_MAP[t.state] || { name: t.state };
+        const last = i === arr.length - 1;
+        return `<div class="row" style="gap:11px;align-items:flex-start;padding-bottom:${last ? '0' : '13px'}">
+          <span style="width:10px;height:10px;border-radius:50%;flex:none;margin-top:5px;background:${last ? 'var(--accent)' : 'var(--line-mid)'};${last ? 'box-shadow:0 0 0 3px var(--accent-soft)' : ''}"></span>
+          <div><div style="font-size:.84rem;font-weight:${last ? 600 : 500}">${st.name}</div>
+          <div class="mono" style="font-size:.67rem;color:var(--faint)">${U.date(t.at, true)}</div>
+          ${t.note ? `<div style="font-size:.77rem;color:var(--muted);margin-top:2px">${U.esc(t.note)}</div>` : ''}</div>
+        </div>`;
+      }).join('')}</div>
+
+      <hr>
+      <span class="card-meta">配货清单</span>
+      <div class="mt-16">${o.lines.map(l => `
+        <div class="spread" style="padding:8px 0;border-bottom:1px solid var(--line)">
+          <div style="min-width:0">
+            <div style="font-size:.84rem;font-weight:500">${U.esc(l.name)}</div>
+            <div class="mono" style="font-size:.66rem;color:var(--faint)">${U.esc(l.brand)} · ${l.id} · 当前库存 ${U.int(Store.stockOf(l.id))}</div>
+          </div>
+          <div class="row" style="gap:10px">
+            <span class="mono" style="font-size:.8rem">×${l.qty}</span>
+            <span class="mono" style="font-size:.8rem;font-weight:600">${U.money(l.sum)}</span>
+          </div>
+        </div>`).join('')}
+      </div>
+      <div class="spread mt-16" style="padding-top:11px;border-top:1px solid var(--line-mid)">
+        <span style="font-weight:600">应付合计</span><span class="mono" style="font-size:1.1rem;font-weight:700">${U.money(o.amount)}</span>
+      </div>
+
+      <hr>
+      <span class="card-meta">收货与发票</span>
+      <div class="mt-16" style="font-size:.84rem;line-height:1.75">
+        <div><b>${U.esc(o.contact.name)}</b> <span class="mono" style="color:var(--faint)">${U.esc(o.contact.phone)}</span></div>
+        <div style="color:var(--muted)">${U.esc(o.contact.full)}</div>
+        ${o.contact.email ? `<div class="mono" style="font-size:.74rem;color:var(--faint)">${U.esc(o.contact.email)}</div>` : ''}
+        ${o.invoice ? `<div class="tag tag-line mt-8">${U.esc(o.invoice.type)} · ${U.esc(o.invoice.title)} · ${U.esc(o.invoice.tax || '—')}</div>` : '<div class="mono mt-8" style="font-size:.72rem;color:var(--faint)">未申请发票</div>'}
+      </div>
+
+      ${o.payChannel ? `<hr><span class="card-meta">支付信息</span>
+        <div class="mt-16" style="font-size:.84rem;line-height:1.75">
+          <div>渠道 ${U.esc((D.PAY_CHANNELS.find(c => c.id === o.payChannel) || {}).name || o.payChannel)}
+            <span class="mono" style="color:var(--faint)">${U.esc(o.payNo || '—')}</span></div>
+          <div class="mono" style="font-size:.72rem;color:var(--faint)">回调来源 ${U.esc(o.settleVia || '—')} · 支付时间 ${o.paidAt ? U.date(o.paidAt, true) : '—'}</div>
+        </div>` : ''}
+
+      <hr>
+      <label class="field mb-0">
+        <span class="field-label">后台备注（内部可见）</span>
+        <textarea class="textarea" id="admNote" placeholder="如：客户要求加固包装、分批发货等">${U.esc(o.adminNote || '')}</textarea>
+      </label>
+      <button class="btn btn-ghost btn-sm mt-8" id="saveNote">保存备注</button>`;
+
+    U.$('#odFoot').innerHTML = `<div class="row" style="gap:8px;flex-wrap:wrap">
+      ${acts.length ? acts.map(a => `<button class="btn ${a.kind === 'danger' ? 'btn-danger' : 'btn-primary'}" style="flex:1;min-width:110px" data-fact="${a.to}">${a.label}</button>`).join('')
+        : '<span class="mono" style="font-size:.78rem;color:var(--faint)">该订单已结束，无可执行操作</span>'}
+      <button class="btn btn-quiet" data-fact="close">关闭</button>
+    </div>`;
+
+    U.on(U.$('#saveNote'), 'click', () => {
+      o.adminNote = U.$('#admNote').value.trim();
+      Store.putOrder(o);
+      UI.toast('备注已保存');
+    });
+    U.$$('#odFoot [data-fact]').forEach(b => U.on(b, 'click', () => {
+      const a = b.getAttribute('data-fact');
+      if (a === 'close') return UI.closeDrawer('orderDrawer');
+      if (a === 'shipped') { UI.closeDrawer('orderDrawer'); return openShip(id); }
+      UI.closeDrawer('orderDrawer');
+      doTransition(id, a);
+    }));
+    UI.openDrawer('orderDrawer');
+    UI.hydrateIcons();
+  }
+
+  /* ---------- 库存管理 ---------- */
+  function renderInventory() {
+    const lowList = D.MODULES.filter(m => Store.stockOf(m.id) < 30);
+    U.$('#tabBody').innerHTML = `
+      <div class="row row-wrap mb-16" style="gap:8px">
+        <span class="tag tag-line">${D.MODULES.length} 个 SKU</span>
+        <span class="tag ${lowList.length ? 'tag-warn' : 'tag-ok'}">${lowList.length} 个 SKU 库存低于 30</span>
+        <span class="tag tag-line">库存变更仅作用于本机演示数据</span>
+      </div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>模块</th><th>分类</th><th>品牌</th><th>单价</th><th>库存</th><th style="width:190px">调整</th></tr></thead>
+          <tbody>
+            ${D.MODULES.slice().sort((a, b) => Store.stockOf(a.id) - Store.stockOf(b.id)).map(m => {
+              const st = Store.stockOf(m.id);
+              const cat = D.CATEGORIES.find(c => c.id === m.cat);
+              return `<tr>
+                <td><a href="module.html?id=${m.id}" style="font-size:.83rem;color:var(--ink);font-weight:500">${U.esc(m.name)}</a>
+                  <div class="mono" style="font-size:.64rem;color:var(--faint)">${m.id}</div></td>
+                <td><span class="tag tag-line">${cat.name}</span></td>
+                <td style="font-size:.8rem;color:var(--muted)">${U.esc(m.brand)}</td>
+                <td class="tbl-num">${U.money(m.price)}</td>
+                <td class="tbl-num" style="font-weight:600;color:${st === 0 ? 'var(--danger)' : (st < 30 ? 'var(--warn)' : 'var(--ink)')}">${U.int(st)}</td>
+                <td>
+                  <div class="row" style="gap:5px">
+                    <button class="btn btn-ghost btn-sm" data-inv="+10" data-id="${m.id}">+10</button>
+                    <button class="btn btn-ghost btn-sm" data-inv="+100" data-id="${m.id}">+100</button>
+                    <button class="btn btn-danger btn-sm" data-inv="-10" data-id="${m.id}">−10</button>
+                    <button class="btn btn-quiet btn-sm" data-inv="reset" data-id="${m.id}">重置</button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+    U.$$('#tabBody [data-inv]').forEach(b => U.on(b, 'click', () => {
+      const id = b.getAttribute('data-id');
+      const v = b.getAttribute('data-inv');
+      if (v === 'reset') {
+        const inv = Store.read('mosaic.stock.v1', {});
+        delete inv[id];
+        Store.write('mosaic.stock.v1', inv);
+      } else {
+        Store.stockDelta(id, Number(v));
+      }
+      UI.toast('库存已更新');
+      renderInventory();
+    }));
+  }
+
+  /* ---------- 热度与埋点 ---------- */
+  function renderHeat() {
+    const ev = Heat.events();
+    const rows = Heat.ranking({ range: '7d', includeLocal: true, limit: 14 });
+    const log = (ev.log || []).slice(0, 30);
+    const typeName = { view: '浏览', add: '加购', order: '下单' };
+
+    U.$('#tabBody').innerHTML = `
+      <div class="grid" style="grid-template-columns:1.2fr .8fr;gap:20px;align-items:start" id="heatAdminGrid">
+        <div>
+          <div class="card">
+            <div class="spread mb-16">
+              <span class="card-meta">热度排行（含本机行为加权）</span>
+              <span class="mono" style="font-size:.68rem;color:var(--faint)">记录 ${(ev.log || []).length} 条埋点</span>
+            </div>
+            ${rows.map((e, i) => Heat.rowHTML(e, i + 1)).join('')}
+          </div>
+        </div>
+        <div class="stack" style="--gap:16px">
+          <div class="card">
+            <div class="spread mb-16">
+              <span class="card-meta">埋点明细</span>
+              <button class="btn btn-quiet btn-sm" id="clrHeat">清空</button>
+            </div>
+            ${log.length ? log.map(l => `
+              <div class="spread" style="padding:6px 0;border-bottom:1px solid var(--line)">
+                <div style="min-width:0">
+                  <div style="font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${U.esc((D.MODULE_MAP[l.id] || {}).name || l.id)}</div>
+                  <div class="mono" style="font-size:.64rem;color:var(--faint)">${U.date(l.at, true)}</div>
+                </div>
+                <span class="tag ${l.type === 'order' ? 'tag-accent' : 'tag-line'}">${typeName[l.type] || l.type}</span>
+              </div>`).join('')
+            : `<p class="mono" style="font-size:.76rem;color:var(--faint);margin:0">尚无埋点记录。在前台浏览或加购模块后，这里会记录行为并影响热度排序。</p>`}
+          </div>
+          <div class="card card-ink">
+            <span class="card-meta" style="color:rgba(242,241,238,.6)">热度数据口径</span>
+            <p style="font-size:.79rem;line-height:1.72;color:rgba(242,241,238,.78);margin:10px 0 0">${D.HEAT_META.formula}</p>
+            <p style="font-size:.74rem;line-height:1.7;color:rgba(242,241,238,.55);margin:10px 0 0">${D.HEAT_META.prodNote}</p>
+          </div>
+        </div>
+      </div>`;
+
+    const ch = U.$('#clrHeat');
+    if (ch) U.on(ch, 'click', () => { Heat.clearEvents(); UI.toast('埋点数据已清空'); renderHeat(); });
+    U.$$('#tabBody .heat-row').forEach(r => U.on(r, 'click', () => {
+      const id = r.getAttribute('data-module');
+      if (id) location.href = 'module.html?id=' + id;
+    }));
+  }
+
+  /* ---------- 导出 ---------- */
+  function exportOrders() {
+    const list = Store.orders();
+    if (!list.length) { UI.toast('暂无订单可导出', 'warn'); return; }
+    const head = ['订单号', '下单时间', '状态', '方案名', '模块种类', '商品件数', '金额', '收货人', '手机号', '地址', '支付渠道', '支付单号', '快递公司', '快递单号', '发票类型', '发票抬头'];
+    const rows = list.map(o => [
+      o.no, U.date(o.createdAt, true), (D.STATE_MAP[o.state] || {}).name || o.state, o.schemeName,
+      o.cost.kinds, o.cost.itemCount, o.amount.toFixed(2),
+      o.contact.name, o.contact.phone, o.contact.full,
+      (D.PAY_CHANNELS.find(c => c.id === o.payChannel) || {}).name || '',
+      o.payNo || '', o.carrier || '', o.tracking || '',
+      o.invoice ? o.invoice.type : '', o.invoice ? o.invoice.title : '',
+    ]);
+    const csv = '\uFEFF' + [head, ...rows].map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    U.download(`MOSAIC_Orders_${U.date(Date.now())}.csv`, csv, 'text/csv');
+    UI.toast(`已导出 ${list.length} 笔订单`);
+  }
+
+  function exportInventory() {
+    const head = ['模块ID', '名称', '分类', '品牌', '单价', '当前库存', '热度7日'];
+    const rows = D.MODULES.map(m => [m.id, m.name, (D.CATEGORIES.find(c => c.id === m.cat) || {}).name, m.brand, m.price.toFixed(2), Store.stockOf(m.id), m.heat.d7]);
+    const csv = '\uFEFF' + [head, ...rows].map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    U.download(`MOSAIC_Inventory_${U.date(Date.now())}.csv`, csv, 'text/csv');
+    UI.toast('库存表已导出');
+  }
+
+  /* ---------- 启动 ---------- */
+  shell();
+  UI.hydrateIcons();
+})();
+</script>
+</body>
+</html>

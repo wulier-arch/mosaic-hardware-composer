@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>我的订单 · MOSAIC 拼造</title>
+<meta name="theme-color" content="#f2f1ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23101014'/%3E%3Crect x='4' y='4' width='7' height='7' rx='1.5' fill='%23a78bfa'/%3E%3Crect x='13' y='13' width='7' height='7' rx='1.5' fill='%232d81ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<div id="navHost"></div>
+
+<header class="page-head">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">首页</a><span>/</span>我的订单</div>
+    <div class="spread" style="align-items:flex-end;flex-wrap:wrap;gap:18px">
+      <div>
+        <span class="sec-kicker">My orders</span>
+        <h1 class="serif" style="font-size:clamp(1.6rem,3.4vw,2.4rem)">订单与物流</h1>
+        <p class="sec-lead mt-8">查看方案清单、支付状态与发货进度。支持按订单号或手机号查询。</p>
+      </div>
+      <div class="row row-wrap" style="gap:8px">
+        <a class="btn btn-primary btn-sm" href="catalog.html">继续选型</a>
+        <a class="btn btn-ghost btn-sm" href="admin.html">后台处理</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="section" style="padding-top:28px">
+  <div class="wrap">
+    <!-- 统计 -->
+    <div class="grid-4 card mb-24" id="statRow" style="border-radius:var(--radius-lg)"></div>
+
+    <!-- 查询栏 -->
+    <div class="card mb-24" style="padding:16px 18px">
+      <div class="row row-wrap" style="gap:12px;align-items:flex-end">
+        <label class="field" style="margin:0;flex:1;min-width:220px">
+          <span class="field-label">订单号 / 手机号查询</span>
+          <input class="input" id="q" placeholder="输入订单号（MS 开头）或收货手机号">
+        </label>
+        <div class="switch-group" id="stateFilter" role="tablist" aria-label="状态筛选">
+          <button class="on" data-s="all" role="tab">全部</button>
+          <button data-s="pending" role="tab">待付款</button>
+          <button data-s="paid" role="tab">已付款</button>
+          <button data-s="picking" role="tab">备货中</button>
+          <button data-s="shipped" role="tab">已发货</button>
+          <button data-s="done" role="tab">已完成</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="reset">清空演示数据</button>
+      </div>
+    </div>
+
+    <div id="list"></div>
+  </div>
+</main>
+
+<!-- 订单详情抽屉 -->
+<div class="drawer" id="detailDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <div class="drawer-head">
+    <div>
+      <span class="card-meta">Order detail</span>
+      <h3 id="drawerTitle" style="font-size:1.02rem;margin-top:3px">订单详情</h3>
+    </div>
+    <button class="icon-btn" id="drawerClose" aria-label="关闭"><span data-ico="close" data-size="15"></span></button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-foot" id="drawerFoot"></div>
+</div>
+
+<div id="footHost"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/core.js"></script>
+<script>
+(function () {
+  const { U, ICO, D, UI, Store, Heat } = window.Mosaic;
+  UI.mount('orders.html');
+
+  let q = '';
+  let stateFilter = 'all';
+  let current = null;
+
+  /* ---------- 统计 ---------- */
+  function renderStats() {
+    const list = Store.orders();
+    const acc = {};
+    D.ORDER_STATES.forEach(s => { acc[s.id] = 0; });
+    list.forEach(o => { acc[o.state] = (acc[o.state] || 0) + 1; });
+    const paidAmt = list.filter(o => !['pending', 'cancelled'].includes(o.state)).reduce((a, o) => a + o.amount, 0);
+    const cells = [
+      { k: '订单总数', v: U.int(list.length), s: '本机演示数据' },
+      { k: '待付款', v: U.int(acc.pending), s: '30 分钟内需完成支付' },
+      { k: '处理中', v: U.int(acc.paid + acc.picking), s: '已付款 + 备货中' },
+      { k: '累计支付金额', v: U.money(paidAmt), s: '不含已取消订单' },
+    ];
+    U.$('#statRow').innerHTML = cells.map(c => `
+      <div class="stat-cell">
+        <div class="card-meta">${c.k}</div>
+        <div class="mono" style="font-size:1.35rem;font-weight:700;letter-spacing:-.02em;margin:6px 0 2px">${c.v}</div>
+        <div style="font-size:.74rem;color:var(--faint)">${c.s}</div>
+      </div>`).join('');
+  }
+
+  /* ---------- 列表 ---------- */
+  function filtered() {
+    let list = Store.orders();
+    if (stateFilter !== 'all') {
+      if (stateFilter === 'paid') list = list.filter(o => ['paid', 'picking'].includes(o.state));
+      else list = list.filter(o => o.state === stateFilter);
+    }
+    if (q.trim()) {
+      const t = q.trim().toLowerCase();
+      list = list.filter(o => o.no.toLowerCase().includes(t) || (o.contact.phone || '').includes(t) || o.id.toLowerCase().includes(t));
+    }
+    return list;
+  }
+
+  function actionsFor(o) {
+    const acts = [];
+    if (o.state === 'pending') {
+      acts.push({ k: 'pay', label: '去支付', cls: 'btn-primary' });
+      acts.push({ k: 'cancel', label: '取消订单', cls: 'btn-quiet' });
+    }
+    if (o.state === 'shipped') acts.push({ k: 'receive', label: '确认收货', cls: 'btn-primary' });
+    if (['done', 'cancelled', 'refunded'].includes(o.state)) acts.push({ k: 'rebuy', label: '再次购买', cls: 'btn-ghost' });
+    acts.push({ k: 'detail', label: '查看详情', cls: 'btn-ghost' });
+    return acts;
+  }
+
+  function renderList() {
+    const list = filtered();
+    if (!Store.orders().length) {
+      U.$('#list').innerHTML = UI.empty('还没有订单',
+        '先在工作台组合一份方案，然后就能在这里看到订单与物流进度。',
+        `<a class="btn btn-primary btn-sm" href="builder.html">去选型工作台</a>`);
+      return;
+    }
+    if (!list.length) {
+      U.$('#list').innerHTML = UI.empty('没有匹配的订单', '换个订单号或状态再试试。');
+      return;
+    }
+    U.$('#list').innerHTML = list.map(o => {
+      const s = D.STATE_MAP[o.state] || { name: o.state };
+      return `<article class="card card-hover mb-16" data-order="${o.id}" style="padding:18px 20px">
+        <div class="spread" style="flex-wrap:wrap;gap:12px;align-items:flex-start">
+          <div style="min-width:0;flex:1">
+            <div class="row row-wrap" style="gap:9px">
+              ${UI.stateTag(o.state)}
+              <span class="mono" style="font-size:.76rem;font-weight:600">${o.no}</span>
+              <span class="mono" style="font-size:.7rem;color:var(--faint)">${U.date(o.createdAt, true)}</span>
+            </div>
+            <h3 style="font-size:1rem;margin-top:11px">${U.esc(o.schemeName || '硬件定制方案')}</h3>
+            <div class="mono" style="font-size:.72rem;color:var(--faint);margin-top:5px">
+              ${o.cost.kinds} 类 / ${o.cost.itemCount} 件 · 收货人 ${U.esc(o.contact.name)} · ${U.esc(o.contact.province)}${U.esc(o.contact.city)}
+            </div>
+            <div class="row row-wrap" style="gap:5px;margin-top:10px">
+              ${o.lines.slice(0, 4).map(l => `<span class="tag tag-line" style="font-size:.64rem">${U.esc(l.name.length > 14 ? l.name.slice(0, 14) + '…' : l.name)} ×${l.qty}</span>`).join('')}
+              ${o.lines.length > 4 ? `<span class="tag tag-line" style="font-size:.64rem">等 ${o.lines.length} 类</span>` : ''}
+            </div>
+            ${o.tracking ? `<div class="row" style="gap:7px;margin-top:11px;font-size:.78rem;color:var(--ok)">
+              ${ICO.svg('truck', 14)} ${U.esc(o.carrier || '快递')} ${U.esc(o.tracking)}</div>` : ''}
+          </div>
+          <div style="text-align:right">
+            <div class="card-meta">应付金额</div>
+            <div class="mono" style="font-size:1.25rem;font-weight:700;margin:3px 0 12px">${U.money(o.amount)}</div>
+            <div class="row" style="gap:7px;justify-content:flex-end;flex-wrap:wrap">
+              ${actionsFor(o).map(a => `<button class="btn ${a.cls} btn-sm" data-act="${a.k}" data-id="${o.id}">${a.label}</button>`).join('')}
+            </div>
+          </div>
+        </div>
+      </article>`;
+    }).join('');
+
+    U.$$('#list [data-act]').forEach(b => U.on(b, 'click', e => {
+      e.stopPropagation();
+      const act = b.getAttribute('data-act');
+      const id = b.getAttribute('data-id');
+      const o = Store.order(id);
+      if (act === 'pay') location.href = 'pay.html?order=' + id;
+      else if (act === 'detail') openDetail(id);
+      else if (act === 'cancel') {
+        if (!confirm('确定取消订单 ' + o.no + '？')) return;
+        Store.setState(id, 'cancelled', '用户主动取消');
+        UI.toast('订单已取消'); renderAll();
+      } else if (act === 'receive') {
+        Store.setState(id, 'done', '用户确认收货');
+        UI.toast('已确认收货，订单完成', 'ok'); renderAll();
+      } else if (act === 'rebuy') {
+        const s = Store.resetScheme();
+        s.name = (o.schemeName || '复购方案');
+        o.lines.forEach(l => Store.addItem(l.id, l.qty));
+        o.lines.forEach(l => Heat.record('add', l.id));
+        UI.toast('已把该订单的模块重新加入方案'); 
+        setTimeout(() => location.href = 'builder.html', 700);
+      }
+    }));
+    U.$$('#list [data-order]').forEach(card => U.on(card, 'click', e => {
+      if (e.target.closest('button')) return;
+      openDetail(card.getAttribute('data-order'));
+    }));
+  }
+
+  /* ---------- 详情抽屉 ---------- */
+  function openDetail(id) {
+    const o = Store.order(id);
+    if (!o) return;
+    current = o;
+    U.$('#drawerTitle').textContent = '订单 ' + o.no;
+    U.$('#drawerBody').innerHTML = `
+      <div class="spread mb-16">${UI.stateTag(o.state)}
+        <span class="mono" style="font-size:.72rem;color:var(--faint)">${U.date(o.createdAt, true)}</span></div>
+
+      <span class="card-meta">物流时间线</span>
+      <div class="mt-16">${(o.timeline || []).map((t, i, arr) => {
+        const st = D.STATE_MAP[t.state] || { name: t.state };
+        const last = i === arr.length - 1;
+        return `<div class="row" style="gap:11px;align-items:flex-start;padding-bottom:${last ? '0' : '13px'}">
+          <span style="width:10px;height:10px;border-radius:50%;flex:none;margin-top:5px;background:${last ? 'var(--accent)' : 'var(--line-mid)'};${last ? 'box-shadow:0 0 0 3px var(--accent-soft)' : ''}"></span>
+          <div><div style="font-size:.84rem;font-weight:${last ? 600 : 500}">${st.name}</div>
+          <div class="mono" style="font-size:.67rem;color:var(--faint)">${U.date(t.at, true)}</div>
+          ${t.note ? `<div style="font-size:.77rem;color:var(--muted);margin-top:2px">${U.esc(t.note)}</div>` : ''}</div>
+        </div>`;
+      }).join('')}</div>
+
+      <hr>
+
+      <span class="card-meta">方案清单</span>
+      <div class="mt-16">${o.lines.map(l => UI.lineRow(l)).join('')}</div>
+      <div class="mt-16">
+        <div class="spread" style="padding:3px 0"><span style="font-size:.82rem;color:var(--muted)">模块小计</span><span class="mono" style="font-size:.82rem">${U.money(o.cost.subtotal)}</span></div>
+        ${o.cost.assembly ? `<div class="spread" style="padding:3px 0"><span style="font-size:.82rem;color:var(--muted)">代装配服务</span><span class="mono" style="font-size:.82rem">${U.money(o.cost.assembly)}</span></div>` : ''}
+        ${o.cost.rush ? `<div class="spread" style="padding:3px 0"><span style="font-size:.82rem;color:var(--muted)">加急处理</span><span class="mono" style="font-size:.82rem">${U.money(o.cost.rush)}</span></div>` : ''}
+        <div class="spread" style="padding:3px 0"><span style="font-size:.82rem;color:var(--muted)">运费</span><span class="mono" style="font-size:.82rem">${o.cost.shipping ? U.money(o.cost.shipping) : '免运费'}</span></div>
+        <div class="spread" style="padding:10px 0 0;margin-top:6px;border-top:1px solid var(--line-mid)">
+          <span style="font-weight:600">应付合计</span><span class="mono" style="font-size:1.1rem;font-weight:700">${U.money(o.amount)}</span></div>
+      </div>
+
+      <hr>
+
+      <span class="card-meta">收货信息</span>
+      <div class="mt-16" style="font-size:.84rem;line-height:1.75">
+        <div><b>${U.esc(o.contact.name)}</b> <span class="mono" style="color:var(--faint)">${U.esc(o.contact.phone)}</span></div>
+        <div style="color:var(--muted)">${U.esc(o.contact.full)}</div>
+        ${o.contact.email ? `<div class="mono" style="font-size:.74rem;color:var(--faint);margin-top:4px">${U.esc(o.contact.email)}</div>` : ''}
+      </div>
+
+      ${o.invoice ? `<hr><span class="card-meta">发票</span>
+        <div class="mt-16" style="font-size:.84rem;line-height:1.7">
+          <div>${U.esc(o.invoice.type)} · ${U.esc(o.invoice.title)}</div>
+          <div class="mono" style="font-size:.74rem;color:var(--faint)">税号 ${U.esc(o.invoice.tax || '—')}</div></div>` : ''}
+
+      ${o.tracking ? `<hr><span class="card-meta">物流</span>
+        <div class="mt-16" style="font-size:.84rem">
+          <div class="row" style="gap:7px">${ICO.svg('truck', 15)} ${U.esc(o.carrier || '快递')} · <span class="mono">${U.esc(o.tracking)}</span></div>
+          <button class="btn btn-ghost btn-sm mt-8" id="copyTrack">复制单号</button>
+        </div>` : ''}
+
+      ${o.note ? `<hr><span class="card-meta">订单备注</span>
+        <div class="card card-flat mt-16" style="padding:12px;font-size:.82rem;color:var(--muted)">${U.esc(o.note)}</div>` : ''}
+
+      ${o.validation ? `<hr><span class="card-meta">下单时的校验结论</span>
+        <div class="row row-wrap mt-16" style="gap:6px">
+          <span class="tag ${o.validation.errors ? 'tag-danger' : (o.validation.warnings ? 'tag-warn' : 'tag-ok')}">
+            ${o.validation.errors ? o.validation.errors + ' 项冲突' : (o.validation.warnings ? o.validation.warnings + ' 项提醒' : '校验通过')}</span>
+          <span class="tag tag-line">难度 ${o.validation.difficulty}/5</span>
+          <span class="tag tag-line">约 ${o.validation.hours} 小时装配</span>
+        </div>` : ''}
+
+      <hr>
+      <div class="row row-wrap" style="gap:8px">
+        <button class="btn btn-ghost btn-sm" id="dlOrder">${ICO.svg('download', 14)} 导出订单</button>
+        <button class="btn btn-quiet btn-sm" id="printOrder">打印订单</button>
+      </div>`;
+
+    /* 底部操作 */
+    U.$('#drawerFoot').innerHTML = `<div class="row" style="gap:8px">
+      ${o.state === 'pending' ? `<button class="btn btn-primary" style="flex:1" data-dact="pay">去支付 ${U.money(o.amount)}</button>` : ''}
+      ${o.state === 'shipped' ? `<button class="btn btn-primary" style="flex:1" data-dact="receive">确认收货</button>` : ''}
+      ${['done', 'cancelled', 'refunded'].includes(o.state) ? `<button class="btn btn-ghost" style="flex:1" data-dact="rebuy">再次购买</button>` : ''}
+      <button class="btn btn-quiet" data-dact="close">关闭</button>
+    </div>`;
+
+    U.$$('#drawerFoot [data-dact]').forEach(b => U.on(b, 'click', () => {
+      const a = b.getAttribute('data-dact');
+      if (a === 'close') return UI.closeDrawer('detailDrawer');
+      if (a === 'pay') return location.href = 'pay.html?order=' + o.id;
+      if (a === 'receive') { Store.setState(o.id, 'done', '用户确认收货'); UI.toast('已确认收货', 'ok'); UI.closeDrawer('detailDrawer'); renderAll(); return; }
+      if (a === 'rebuy') {
+        Store.resetScheme();
+        const s = Store.scheme(); s.name = o.schemeName || '复购方案'; Store.saveScheme(s);
+        o.lines.forEach(l => Store.addItem(l.id, l.qty));
+        UI.closeDrawer('detailDrawer');
+        setTimeout(() => location.href = 'builder.html', 400);
+      }
+    }));
+    U.on(U.$('#dlOrder'), 'click', () => {
+      U.download(`MOSAIC_Order_${o.no}.json`, JSON.stringify(o, null, 2), 'application/json');
+      UI.toast('订单 JSON 已导出');
+    });
+    U.on(U.$('#printOrder'), 'click', () => window.print());
+    const ct = U.$('#copyTrack');
+    if (ct) U.on(ct, 'click', () => U.copy(o.tracking).then(() => UI.toast('快递单号已复制')));
+
+    UI.openDrawer('detailDrawer');
+    UI.hydrateIcons();
+  }
+
+  /* ---------- 事件 ---------- */
+  U.on(U.$('#q'), 'input', U.debounce(e => { q = e.target.value; renderList(); }, 240));
+  U.$$('#stateFilter button').forEach(b => U.on(b, 'click', () => {
+    U.$$('#stateFilter button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    stateFilter = b.getAttribute('data-s');
+    renderList();
+  }));
+  U.on(U.$('#reset'), 'click', () => {
+    if (!confirm('将清空本机的全部订单、库存与热度行为数据（仅演示数据）。确定继续？')) return;
+    Store.resetDemo();
+    UI.toast('演示数据已重置');
+    renderAll();
+  });
+  U.on(U.$('#drawerClose'), 'click', () => UI.closeDrawer('detailDrawer'));
+
+  function renderAll() { renderStats(); renderList(); }
+  renderAll();
+  UI.hydrateIcons();
+})();
+</script>
+</body>
+</html>

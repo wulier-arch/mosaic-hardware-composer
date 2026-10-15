@@ -1,0 +1,38 @@
+# ---- 系统与编辑器 ----
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# ---- WorkBuddy 工作区内部文件（不属于作品内容）----
+.workbuddy/
+.workbuddy-ai/
+.wbapp_*.genie
+
+# ---- 依赖与构建产物 ----
+node_modules/
+dist/
+build/
+.vercel/
+.wrangler/
+
+# ---- 演示片的中间产物（源文件与成片已入库，这些不入库）----
+promo/frames/
+promo/frames-live/
+promo/base/
+promo/takes/
+promo/preview/
+promo/preview-live/
+promo/video_only*.mp4
+promo/*.wav
+promo/tools/*.wav
+promo/tools/*.m4a
+promo/tools/decode
+promo/tools/encode
+promo/tools/aac
+promo/tools/mux
+promo/tools/probe
+
+# ---- 临时文件 ----
+*.log
+tmp/

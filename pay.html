@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>支付订单 · MOSAIC 拼造</title>
+<meta name="theme-color" content="#f2f1ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23101014'/%3E%3Crect x='4' y='4' width='7' height='7' rx='1.5' fill='%23a78bfa'/%3E%3Crect x='13' y='13' width='7' height='7' rx='1.5' fill='%232d81ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/main.css">
+<style>
+  .pay-layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 24px; align-items: start; }
+  .qr-frame { background: #fff; border: 1px solid var(--line-mid); border-radius: var(--radius-lg); padding: 14px; display: inline-block; line-height: 0; position: relative; }
+  .qr-frame::after {
+    content: ""; position: absolute; left: 14px; right: 14px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scan 2.6s ease-in-out infinite; opacity: .7;
+  }
+  @keyframes scan { 0%, 100% { top: 16px; } 50% { top: calc(100% - 18px); } }
+  .ch-tab { display: flex; align-items: center; gap: 10px; padding: 13px 15px; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; background: var(--bg-raised); transition: .16s var(--ease); }
+  .ch-tab:hover { border-color: var(--line-strong); }
+  .ch-tab.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: #fff; }
+  .ch-dot { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; color: #fff; font-family: var(--font-mono); font-size: .7rem; font-weight: 700; flex: none; }
+  .countdown { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; }
+  .countdown.danger { color: var(--danger); }
+  @media (max-width: 940px) { .pay-layout { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="navHost"></div>
+
+<header class="page-head">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">首页</a><span>/</span><a href="orders.html">我的订单</a><span>/</span>支付</div>
+    <span class="sec-kicker">Payment</span>
+    <h1 class="serif" style="font-size:clamp(1.5rem,3.2vw,2.2rem)" id="payTitle">扫码完成支付</h1>
+  </div>
+</header>
+
+<main class="section" style="padding-top:34px">
+  <div class="wrap" id="payWrap"></div>
+</main>
+
+<div id="footHost"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/core.js"></script>
+<script>
+(function () {
+  const { U, ICO, D, UI, Store, Pay, Compat } = window.Mosaic;
+  UI.mount('orders.html');
+
+  const wrap = U.$('#payWrap');
+  const oid = U.params().order;
+  let order = oid ? Store.order(oid) : null;
+
+  /* ---------- 订单不存在 ---------- */
+  if (!order) {
+    wrap.innerHTML = UI.empty('未找到订单',
+      '请从订单列表选择需要支付的订单，或确认链接中的订单号是否正确。',
+      `<a class="btn btn-primary btn-sm" href="orders.html">前往我的订单</a>`);
+    UI.hydrateIcons();
+    return;
+  }
+
+  const paidStates = ['paid', 'picking', 'shipped', 'done'];
+
+  /* ---------- 已支付：直接展示成功态 ---------- */
+  if (paidStates.includes(order.state)) { renderSuccess(); UI.hydrateIcons(); return; }
+
+  let channel = order.payChannel || 'wechat';
+  let cred = Pay.create(order, channel);
+  let timer = null;
+
+  function remainMs() { return Math.max(0, cred.expireAt - Date.now()); }
+  function fmt(ms) {
+    const s = Math.floor(ms / 1000);
+    return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  /* ---------- 主支付界面 ---------- */
+  function renderPay() {
+    const ch = Pay.channel(channel);
+    const exp = remainMs() <= 0;
+
+    wrap.innerHTML = `
+    <div class="pay-layout">
+      <!-- 左：渠道 + 二维码 -->
+      <div>
+        <section class="card card-pad-lg mb-16">
+          <div class="spread mb-16">
+            <div>
+              <span class="card-meta">订单信息</span>
+              <h3 style="font-size:1.05rem;margin-top:3px">${U.esc(order.schemeName || '硬件定制方案')}</h3>
+            </div>
+            ${UI.stateTag(order.state)}
+          </div>
+          <div class="grid grid-4" style="border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden">
+            <div class="stat-cell" style="padding:13px 15px">
+              <div class="card-meta">订单号</div>
+              <div class="mono" style="font-size:.8rem;font-weight:600">${order.no}</div>
+            </div>
+            <div class="stat-cell" style="padding:13px 15px">
+              <div class="card-meta">商品件数</div>
+              <div class="mono" style="font-size:.8rem;font-weight:600">${order.cost.itemCount} 件 / ${order.cost.kinds} 类</div>
+            </div>
+            <div class="stat-cell" style="padding:13px 15px">
+              <div class="card-meta">收货人</div>
+              <div class="mono" style="font-size:.8rem;font-weight:600">${U.esc(order.contact.name)} ${U.esc(order.contact.phone.slice(0, 3))}****${U.esc(order.contact.phone.slice(-4))}</div>
+            </div>
+            <div class="stat-cell" style="padding:13px 15px">
+              <div class="card-meta">应付金额</div>
+              <div class="mono" style="font-size:1.05rem;font-weight:700;color:var(--accent-deep)">${U.money(order.amount)}</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card card-pad-lg">
+          <div class="spread mb-16">
+            <div>
+              <span class="card-meta">选择支付方式</span>
+              <h3 style="font-size:1.05rem;margin-top:3px">扫码支付</h3>
+            </div>
+            <span class="mono" style="font-size:.68rem;color:var(--faint)">支付结果由服务端回调确认</span>
+          </div>
+
+          <div class="stack" style="--gap:9px;margin-bottom:22px" id="chTabs">
+            ${D.PAY_CHANNELS.map(c => `
+              <div class="ch-tab ${c.id === channel ? 'on' : ''}" data-ch="${c.id}">
+                <span class="ch-dot" style="background:${c.tone}">${c.name.slice(0, 1)}</span>
+                <span style="flex:1;min-width:0">
+                  <b style="font-size:.88rem">${c.name}</b>
+                  <span class="mono" style="font-size:.66rem;color:var(--faint);display:block">${c.mode}</span>
+                </span>
+                ${c.id === channel ? `<span class="tag tag-accent">已选</span>` : ''}
+              </div>`).join('')}
+          </div>
+
+          <div class="grid" style="grid-template-columns:auto minmax(0,1fr);gap:26px;align-items:start">
+            <div class="center">
+              <div class="qr-frame" id="qrHost">${Pay.qrSVG(cred.code, { size: 208 })}</div>
+              <div class="mono" style="font-size:.66rem;color:var(--faint);margin-top:10px">
+                ${ch.name} · 二维码占位
+              </div>
+            </div>
+            <div>
+              <div class="row" style="gap:9px;align-items:center;margin-bottom:10px">
+                <span style="color:var(--accent-deep)">${ICO.svg('qr', 20)}</span>
+                <b style="font-size:.95rem">请使用「${ch.name}」扫描二维码</b>
+              </div>
+              <p style="font-size:.84rem;color:var(--muted);line-height:1.68;margin:0 0 14px">
+                支付金额 <b class="mono" style="color:var(--ink)">${U.money(order.amount)}</b>。
+                ${ch.id === 'mock' ? '当前为演示通道，点击下方按钮可直接模拟支付成功，用于验证下单 → 付款 → 后台流转的完整链路。' : '扫码后请在手机上确认支付。本页会自动检测支付结果，无需手动刷新。'}
+              </p>
+
+              <div class="card card-flat" style="padding:14px">
+                <div class="spread">
+                  <span class="card-meta">支付剩余时间</span>
+                  <span class="countdown ${remainMs() < 300000 ? 'danger' : ''}" id="cd">${fmt(remainMs())}</span>
+                </div>
+                <div class="mono" style="font-size:.66rem;color:var(--faint);margin-top:8px">
+                  超时后订单将自动关闭，需重新下单。支付单号 ${cred.payNo}
+                </div>
+              </div>
+
+              <div class="stack" style="--gap:8px;margin-top:16px">
+                <button class="btn btn-primary btn-block" id="simulate" ${exp ? 'disabled' : ''}>
+                  ${ch.id === 'mock' ? '模拟支付成功' : '我已完成支付（模拟回调）'}
+                </button>
+                <div class="row" style="gap:8px">
+                  <button class="btn btn-ghost btn-sm" style="flex:1" id="poll">${ICO.svg('refresh', 14)} 查询支付状态</button>
+                  <button class="btn btn-quiet btn-sm" style="flex:1" id="cancel">取消订单</button>
+                </div>
+              </div>
+
+              <div class="mono" style="font-size:.66rem;color:var(--faint);margin-top:12px;line-height:1.7">
+                轮询接口 GET ${cred.endpoint ? cred.endpoint.replace('/create', '/query') : '/api/orders/' + order.no + '/status'}<br>
+                回调地址 POST ${cred.endpoint ? cred.endpoint.replace('/create', '/notify') : '/api/pay/mock/notify'}
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 右：方案与收货 -->
+      <aside class="stack" style="--gap:16px">
+        <div class="card">
+          <span class="card-meta">方案清单</span>
+          <div class="mt-16">
+            ${order.lines.map(l => `
+              <div class="spread" style="padding:7px 0;border-bottom:1px solid var(--line)">
+                <span style="font-size:.8rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${U.esc(l.name)} <span class="mono" style="color:var(--faint)">×${l.qty}</span></span>
+                <span class="mono" style="font-size:.8rem;white-space:nowrap;margin-left:8px">${U.money(l.sum)}</span>
+              </div>`).join('')}
+          </div>
+          <div class="mt-16">
+            <div class="spread" style="padding:3px 0"><span style="font-size:.82rem;color:var(--muted)">模块小计</span><span class="mono" style="font-size:.82rem">${U.money(order.cost.subtotal)}</span></div>
+            ${order.cost.assembly ? `<div class="spread" style="padding:3px 0"><span style="font-size:.82rem;color:var(--muted)">代装配服务</span><span class="mono" style="font-size:.82rem">${U.money(order.cost.assembly)}</span></div>` : ''}
+            ${order.cost.rush ? `<div class="spread" style="padding:3px 0"><span style="font-size:.82rem;color:var(--muted)">加急处理</span><span class="mono" style="font-size:.82rem">${U.money(order.cost.rush)}</span></div>` : ''}
+            <div class="spread" style="padding:3px 0"><span style="font-size:.82rem;color:var(--muted)">运费</span><span class="mono" style="font-size:.82rem">${order.cost.shipping ? U.money(order.cost.shipping) : '免运费'}</span></div>
+            <div class="spread" style="padding:11px 0 0;margin-top:7px;border-top:1px solid var(--line-mid)">
+              <span style="font-weight:600">应付合计</span>
+              <span class="mono" style="font-size:1.15rem;font-weight:700">${U.money(order.amount)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="card-meta">收货信息</span>
+          <div class="mt-16" style="font-size:.84rem;line-height:1.75">
+            <div><b>${U.esc(order.contact.name)}</b> <span class="mono" style="color:var(--faint)">${U.esc(order.contact.phone)}</span></div>
+            <div style="color:var(--muted)">${U.esc(order.contact.full)}</div>
+            ${order.contact.email ? `<div class="mono" style="font-size:.74rem;color:var(--faint);margin-top:4px">${U.esc(order.contact.email)}</div>` : ''}
+            ${order.invoice ? `<div class="tag tag-line mt-8">发票 · ${U.esc(order.invoice.type)} · ${U.esc(order.invoice.title)}</div>` : ''}
+            ${order.note ? `<div class="card card-flat mt-16" style="padding:11px;font-size:.8rem;color:var(--muted)">备注：${U.esc(order.note)}</div>` : ''}
+          </div>
+        </div>
+
+        <div class="card card-ink">
+          <div class="row" style="gap:8px;margin-bottom:10px">
+            <span style="color:var(--accent)">${ICO.svg('info', 16)}</span>
+            <span class="card-meta" style="color:rgba(242,241,238,.6)">接入说明</span>
+          </div>
+          <div style="font-size:.79rem;line-height:1.72;color:rgba(242,241,238,.78)">
+            ${ch.desc}
+            <ol style="margin:10px 0 0;padding-left:18px">
+              ${ch.steps.map(s => `<li style="margin-bottom:5px">${s}</li>`).join('')}
+            </ol>
+            <div style="margin-top:12px;padding-top:11px;border-top:1px solid rgba(242,241,238,.14);font-size:.74rem;color:rgba(242,241,238,.55)">
+              需要配置：${ch.required.join(' · ')}
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>`;
+
+    bindPay();
+    startCountdown();
+  }
+
+  /* ---------- 绑定 ---------- */
+  function bindPay() {
+    U.$$('#chTabs [data-ch]').forEach(el => U.on(el, 'click', () => {
+      channel = el.getAttribute('data-ch');
+      cred = Pay.create(order, channel);
+      Store.putOrder(Object.assign({}, Store.order(order.id), { payChannel: channel, payNo: cred.payNo }));
+      order = Store.order(order.id);
+      renderPay();
+    }));
+    U.on(U.$('#simulate'), 'click', () => settle('client-simulate'));
+    U.on(U.$('#poll'), 'click', () => {
+      const q = Pay.query(order.id);
+      if (q && q.paid) { UI.toast('检测到支付成功'); renderSuccess(); }
+      else UI.toast('暂未检测到支付结果，请完成扫码后重试', 'warn');
+    });
+    U.on(U.$('#cancel'), 'click', () => {
+      if (!confirm('确定取消这笔订单？取消后需重新下单。')) return;
+      Store.setState(order.id, 'cancelled', '用户主动取消');
+      UI.toast('订单已取消');
+      setTimeout(() => location.href = 'orders.html', 600);
+    });
+  }
+
+  /* ---------- 倒计时 + 轮询 ---------- */
+  function startCountdown() {
+    clearInterval(timer);
+    timer = setInterval(() => {
+      const el = U.$('#cd');
+      if (!el) return;
+      const ms = remainMs();
+      el.textContent = fmt(ms);
+      el.classList.toggle('danger', ms < 300000);
+      if (ms <= 0) {
+        clearInterval(timer);
+        Store.setState(order.id, 'cancelled', '支付超时自动关闭');
+        UI.toast('支付超时，订单已自动关闭', 'err', 3600);
+        setTimeout(() => location.reload(), 900);
+        return;
+      }
+      /* 真实环境：这里改为 fetch 服务端查询接口；演示环境仅做本地状态核对 */
+      const q = Pay.query(order.id);
+      if (q && q.paid) { clearInterval(timer); renderSuccess(); }
+    }, 1000);
+  }
+
+  /* ---------- 支付成功（模拟服务端回调） ---------- */
+  function settle(via) {
+    const cur = Pay.create(order, channel);
+    const updated = Pay.settle(order.id, cur, via);
+    if (!updated) { UI.toast('订单状态更新失败', 'err'); return; }
+    order = updated;
+    clearInterval(timer);
+    UI.toast('支付成功，已通知后台处理', 'ok');
+    renderSuccess();
+  }
+
+  /* ---------- 成功态 ---------- */
+  function renderSuccess() {
+    clearInterval(timer);
+    order = Store.order(order.id) || order;
+    const ch = Pay.channel(order.payChannel) || Pay.channel('mock');
+    U.$('#payTitle').textContent = '支付成功';
+    const nextStates = D.ORDER_ACTIONS[order.state] || [];
+
+    wrap.innerHTML = `
+    <div class="pay-layout">
+      <div>
+        <section class="card card-pad-lg">
+          <div class="row" style="gap:14px;align-items:flex-start">
+            <span style="width:46px;height:46px;border-radius:50%;background:var(--ok-soft);color:var(--ok);display:grid;place-items:center;flex:none">
+              ${ICO.svg('check', 24)}
+            </span>
+            <div style="flex:1;min-width:0">
+              <h2 class="serif" style="font-size:1.6rem">支付已完成</h2>
+              <p class="sec-lead mt-8" style="font-size:.92rem">
+                订单 <b class="mono">${order.no}</b> 已进入「已付款」状态，后台可立即看到并开始备货。
+              </p>
+              <div class="row row-wrap mt-16" style="gap:7px">
+                <span class="tag tag-ok"><span class="dot"></span>已付款</span>
+                <span class="tag tag-line">${ch.name} · ${ch.mode}</span>
+                <span class="tag tag-line">支付单号 ${order.payNo || '—'}</span>
+                <span class="tag tag-line">回调来源 ${order.settleVia || '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-4 mt-32" style="border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden">
+            <div class="stat-cell" style="padding:14px 16px">
+              <div class="card-meta">实付金额</div>
+              <div class="mono" style="font-size:1.15rem;font-weight:700">${U.money(order.amount)}</div>
+            </div>
+            <div class="stat-cell" style="padding:14px 16px">
+              <div class="card-meta">支付时间</div>
+              <div class="mono" style="font-size:.86rem;font-weight:600">${U.date(order.paidAt, true)}</div>
+            </div>
+            <div class="stat-cell" style="padding:14px 16px">
+              <div class="card-meta">商品件数</div>
+              <div class="mono" style="font-size:.86rem;font-weight:600">${order.cost.itemCount} 件</div>
+            </div>
+            <div class="stat-cell" style="padding:14px 16px">
+              <div class="card-meta">预计发货</div>
+              <div class="mono" style="font-size:.86rem;font-weight:600">${order.service.rush ? D.SHIPPING.etaDays.rush : D.SHIPPING.etaDays.normal} 天</div>
+            </div>
+          </div>
+
+          <div class="row row-wrap mt-32" style="gap:10px">
+            <a class="btn btn-primary" href="orders.html">查看我的订单</a>
+            <a class="btn btn-ghost" href="admin.html">进入后台处理</a>
+            <button class="btn btn-quiet" id="dlOrder">导出订单 JSON</button>
+            <a class="btn btn-quiet" href="builder.html">继续选型</a>
+          </div>
+
+          <div class="issue mt-24" style="background:var(--bg-sunken);border-color:transparent">
+            <span class="issue-ico" style="color:var(--accent-ink)">${ICO.svg('info', 15)}</span>
+            <div>
+              <span class="issue-title">这是演示环境的支付结果</span>
+              <span class="issue-body">
+                本页通过本地「模拟回调」把订单置为已付款，未产生真实资金往来。
+                接入真实支付时，前端只需轮询服务端查询接口，由服务端在收到微信/支付宝异步通知并验签后更新订单状态。
+              </span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="stack" style="--gap:16px">
+        <div class="card">
+          <span class="card-meta">订单进度</span>
+          <div class="mt-16" id="timeline"></div>
+        </div>
+        <div class="card">
+          <span class="card-meta">下一步</span>
+          <div class="mt-16" style="font-size:.83rem;color:var(--muted);line-height:1.75">
+            后台已收到该订单。进入后台可执行：<b style="color:var(--ink)">开始备货 → 录入快递单号发货 → 标记完成</b>。
+            订单状态变更会同步回前台，可在「我的订单」查看物流时间线。
+          </div>
+          <a class="btn btn-ghost btn-sm btn-block mt-16" href="admin.html">前往后台处理</a>
+        </div>
+      </aside>
+    </div>`;
+
+    renderTimeline();
+    U.on(U.$('#dlOrder'), 'click', () => {
+      U.download(`MOSAIC_Order_${order.no}.json`, JSON.stringify(order, null, 2), 'application/json');
+      UI.toast('订单 JSON 已导出');
+    });
+    UI.hydrateIcons();
+  }
+
+  function renderTimeline() {
+    const host = U.$('#timeline');
+    if (!host) return;
+    host.innerHTML = (order.timeline || []).map((t, i, arr) => {
+      const s = D.STATE_MAP[t.state] || { name: t.state };
+      const last = i === arr.length - 1;
+      return `<div class="row" style="gap:11px;align-items:flex-start;padding-bottom:${last ? '0' : '14px'};position:relative">
+        <span style="width:11px;height:11px;border-radius:50%;flex:none;margin-top:5px;background:${last ? 'var(--accent)' : 'var(--line-mid)'};${last ? 'box-shadow:0 0 0 3px var(--accent-soft)' : ''}"></span>
+        <div style="min-width:0">
+          <div style="font-size:.85rem;font-weight:${last ? '600' : '500'}">${s.name}</div>
+          <div class="mono" style="font-size:.68rem;color:var(--faint)">${U.date(t.at, true)}</div>
+          ${t.note ? `<div style="font-size:.78rem;color:var(--muted);margin-top:2px">${U.esc(t.note)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ---------- 启动 ---------- */
+  renderPay();
+  UI.hydrateIcons();
+})();
+</script>
+</body>
+</html>

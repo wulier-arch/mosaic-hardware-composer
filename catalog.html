@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>模块库 · MOSAIC 拼造</title>
+<meta name="description" content="浏览 8 大分类硬件模块，按接口、供电、价格与热度筛选。">
+<meta name="theme-color" content="#f2f1ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23101014'/%3E%3Crect x='4' y='4' width='7' height='7' rx='1.5' fill='%23a78bfa'/%3E%3Crect x='13' y='13' width='7' height='7' rx='1.5' fill='%232d81ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<div id="navHost"></div>
+
+<header class="page-head">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">首页</a><span>/</span>模块库</div>
+    <div class="spread" style="align-items:flex-end;flex-wrap:wrap;gap:20px">
+      <div>
+        <span class="sec-kicker">Module library</span>
+        <h1 class="serif" style="font-size:clamp(1.7rem,3.6vw,2.6rem)">硬件模块库</h1>
+        <p class="sec-lead mt-8" id="headLead">按接口、供电与价格快速收敛候选集，加入方案时立即校验兼容性。</p>
+      </div>
+      <div class="row row-wrap" style="gap:10px">
+        <div class="switch-group" id="viewSwitch" role="tablist" aria-label="视图切换">
+          <button class="on" data-view="card" role="tab" aria-selected="true">卡片</button>
+          <button data-view="list" role="tab" aria-selected="false">紧凑</button>
+        </div>
+        <a class="btn btn-primary" href="builder.html"><span data-ico="sliders" data-size="15"></span> 去工作台 <span class="nav-badge" id="headCount">0</span></a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="section" style="padding-top:30px">
+  <div class="wrap">
+    <div class="layout-side">
+      <!-- ===== 筛选侧栏 ===== -->
+      <aside class="side" id="side">
+        <div class="row" style="gap:8px;margin-bottom:14px">
+          <input class="input input-sm" id="q" type="search" placeholder="搜索模块名 / 品牌 / 标签" aria-label="搜索模块">
+          <button class="icon-btn" id="sideToggle" aria-label="展开筛选" style="display:none"><span data-ico="filter" data-size="16"></span></button>
+        </div>
+        <div class="side-mobile-hidden">
+          <div class="side-block">
+            <div class="side-title">分类 <button class="btn btn-quiet btn-sm" id="clearAll" style="padding:2px 6px;font-size:.66rem">重置</button></div>
+            <div class="filter-list" id="fCat"></div>
+          </div>
+          <div class="side-block">
+            <div class="side-title">总线 / 接口</div>
+            <div class="filter-list" id="fBus"></div>
+          </div>
+          <div class="side-block">
+            <div class="side-title">供电电压</div>
+            <div class="filter-list" id="fVolt"></div>
+          </div>
+          <div class="side-block">
+            <div class="side-title">价格上限 <span class="mono" id="priceLabel"></span></div>
+            <input type="range" id="fPrice" min="3" max="2200" step="1" value="2200" aria-label="价格上限">
+            <div class="row" style="justify-content:space-between;margin-top:6px">
+              <span class="mono" style="font-size:.66rem;color:var(--faint)">¥3</span>
+              <span class="mono" style="font-size:.66rem;color:var(--faint)">¥2200</span>
+            </div>
+          </div>
+          <div class="side-block">
+            <div class="side-title">排序</div>
+            <select class="select input-sm" id="fSort" aria-label="排序方式">
+              <option value="heat">综合热度（高 → 低）</option>
+              <option value="price-asc">价格（低 → 高）</option>
+              <option value="price-desc">价格（高 → 低）</option>
+              <option value="stock">库存（多 → 少）</option>
+              <option value="name">名称（A → Z）</option>
+            </select>
+          </div>
+          <div class="side-block" style="border-bottom:0">
+            <label class="check"><input type="checkbox" id="fStock"><span>仅显示有货</span></label>
+            <label class="check mt-8"><input type="checkbox" id="fBoard" checked><span>包含主控开发板</span></label>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ===== 结果区 ===== -->
+      <div>
+        <div class="spread" style="flex-wrap:wrap;gap:12px;margin-bottom:16px">
+          <div class="row row-wrap" style="gap:8px" id="activeChips"></div>
+          <span class="mono" style="font-size:.74rem;color:var(--faint)" id="resultCount"></span>
+        </div>
+        <div id="results"></div>
+        <div id="pager" class="row mt-32" style="justify-content:center;gap:8px"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="footHost"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/core.js"></script>
+<script>
+(function () {
+  const { U, ICO, D, UI, Heat, Store } = window.Mosaic;
+  UI.mount('catalog.html');
+
+  const BUS_LABEL = { i2c: 'I2C', spi: 'SPI', uart: 'UART', gpio: 'GPIO', pwm: 'PWM', adc: 'ADC', i2s: 'I2S', csi: 'CSI', onewire: '单总线', none: '无总线' };
+  const VOLT_LABEL = { '3.3': '3.3V', '5': '5V', '12': '12V', other: '其他 / 宽压' };
+
+  /* ---------- 状态 ---------- */
+  const p = U.params();
+  const S = {
+    cat: p.cat || 'all',
+    bus: p.bus || 'all',
+    volt: p.volt || 'all',
+    price: 2200,
+    sort: p.sort === 'heat' ? 'heat' : (p.sort || 'heat'),
+    q: p.q || '',
+    stockOnly: false,
+    showBoard: true,
+    view: 'card',
+    page: 1,
+    per: 24,
+  };
+
+  const HEAT_LOCAL = Heat.localScore();
+  function heatScore(m) { return Heat.score(m, HEAT_LOCAL, 'd7').score; }
+
+  /* ---------- 侧栏渲染 ---------- */
+  function countBy(fn) {
+    const acc = {};
+    D.MODULES.forEach(m => { const k = fn(m); if (k != null) acc[k] = (acc[k] || 0) + 1; });
+    return acc;
+  }
+  const catCount = countBy(m => m.cat);
+  const busCount = countBy(m => m.req.bus || 'none');
+  const voltCount = countBy(m => {
+    const v = m.req.v;
+    if (!v) return 'other';
+    if (v === '3.3') return '3.3';
+    if (v === '5') return '5';
+    if (v === '12' || v === '11.1') return '12';
+    return 'other';
+  });
+
+  function filterHTML(list, active, counts, labelMap) {
+    return list.map(([id, label]) =>
+      `<button class="filter-item${active === id ? ' on' : ''}" data-val="${id}">
+        <span>${label}</span><span class="cnt">${counts[id] || 0}</span>
+      </button>`).join('');
+  }
+  const CAT_FILTER = [['all', '全部分类']].concat(D.CATEGORIES.map(c => [c.id, c.name]));
+  const BUS_FILTER = [['all', '全部接口']].concat(Object.keys(BUS_LABEL).filter(k => k !== 'none').map(k => [k, BUS_LABEL[k]]));
+  const VOLT_FILTER = [['all', '全部电压']].concat(Object.keys(VOLT_LABEL).map(k => [k, VOLT_LABEL[k]]));
+
+  function renderSide() {
+    U.$('#fCat').innerHTML = filterHTML(CAT_FILTER, S.cat, Object.assign({ all: D.MODULES.length }, catCount));
+    U.$('#fBus').innerHTML = filterHTML(BUS_FILTER, S.bus, Object.assign({ all: D.MODULES.length }, busCount));
+    U.$('#fVolt').innerHTML = filterHTML(VOLT_FILTER, S.volt, Object.assign({ all: D.MODULES.length }, voltCount));
+    U.$('#fPrice').value = S.price;
+    U.$('#priceLabel').textContent = '¥' + S.price + (S.price >= 2200 ? '+' : '');
+    U.$('#fSort').value = S.sort;
+    U.$('#fStock').checked = S.stockOnly;
+    U.$('#fBoard').checked = S.showBoard;
+    U.$('#q').value = S.q;
+
+    const bind = (sel, key) => U.$$(sel + ' .filter-item').forEach(b => U.on(b, 'click', () => {
+      S[key] = b.getAttribute('data-val'); S.page = 1; renderSide(); render();
+    }));
+    bind('#fCat', 'cat'); bind('#fBus', 'bus'); bind('#fVolt', 'volt');
+  }
+
+  /* ---------- 过滤与排序 ---------- */
+  function filtered() {
+    let list = D.MODULES.slice();
+    if (!S.showBoard && S.cat !== 'board') list = list.filter(m => m.cat !== 'board');
+    if (S.cat !== 'all') list = list.filter(m => m.cat === S.cat);
+    if (S.bus !== 'all') list = list.filter(m => (m.req.bus || 'none') === S.bus);
+    if (S.volt !== 'all') {
+      list = list.filter(m => {
+        const v = m.req.v;
+        if (S.volt === 'other') return !v || !['3.3', '5', '12', '11.1'].includes(v);
+        if (S.volt === '12') return v === '12' || v === '11.1';
+        return v === S.volt;
+      });
+    }
+    list = list.filter(m => m.price <= S.price);
+    if (S.stockOnly) list = list.filter(m => Store.stockOf(m.id) > 0);
+    if (S.q.trim()) {
+      const q = S.q.trim().toLowerCase();
+      list = list.filter(m =>
+        (m.name + m.en + m.brand + m.blurb + m.tags.join('')).toLowerCase().includes(q));
+    }
+    const cmp = {
+      heat: (a, b) => heatScore(b) - heatScore(a),
+      'price-asc': (a, b) => a.price - b.price,
+      'price-desc': (a, b) => b.price - a.price,
+      stock: (a, b) => Store.stockOf(b.id) - Store.stockOf(a.id),
+      name: (a, b) => a.en.localeCompare(b.en),
+    }[S.sort] || ((a, b) => heatScore(b) - heatScore(a));
+    return list.sort(cmp);
+  }
+
+  /* ---------- 紧凑列表行 ---------- */
+  function listRow(m) {
+    const cat = D.CATEGORIES.find(c => c.id === m.cat);
+    const qty = U.qtyOf(Store.scheme(), m.id);
+    const stock = Store.stockOf(m.id);
+    const bus = m.req.bus && m.req.bus !== 'none' ? BUS_LABEL[m.req.bus] : '—';
+    return `<div class="spread" data-module="${m.id}" style="padding:11px 14px;border-bottom:1px solid var(--line);gap:14px;flex-wrap:wrap">
+      <div style="min-width:190px;flex:1">
+        <a href="module.html?id=${m.id}" style="font-size:.88rem;font-weight:500;color:var(--ink)">${U.esc(m.name)}</a>
+        <div class="mono" style="font-size:.66rem;color:var(--faint);margin-top:2px">${U.esc(m.brand)} · ${cat ? cat.name : ''}</div>
+      </div>
+      <div class="row" style="gap:14px;flex-wrap:wrap">
+        <span class="tag">${bus}</span>
+        <span class="tag">${m.req.v ? U.esc(m.req.v) + 'V' : '—'}</span>
+        <span class="mono" style="font-size:.68rem;color:var(--faint)">热 ${heatScore(m).toFixed(1)}</span>
+        <span class="price price-sm" style="min-width:74px;text-align:right">${U.money(m.price)}</span>
+        <span class="stock ${stock === 0 ? 'out' : (stock < 30 ? 'low' : '')}" style="min-width:60px">${stock === 0 ? '缺货' : U.int(stock)}</span>
+        <button class="btn ${qty ? 'btn-accent' : 'btn-ghost'} btn-sm js-add" data-id="${m.id}" ${stock === 0 ? 'disabled' : ''}>
+          ${qty ? '已选 ×' + qty : '加入方案'}
+        </button>
+      </div>
+    </div>`;
+  }
+
+  /* ---------- 渲染 ---------- */
+  function render() {
+    const list = filtered();
+    const pages = Math.max(1, Math.ceil(list.length / S.per));
+    S.page = U.clamp(S.page, 1, pages);
+    const slice = list.slice((S.page - 1) * S.per, S.page * S.per);
+
+    /* 结果计数与页头 */
+    const catName = S.cat === 'all' ? '全部分类' : (D.CATEGORIES.find(c => c.id === S.cat) || {}).name;
+    U.$('#resultCount').textContent = `${catName} · 命中 ${list.length} 款 · 第 ${S.page}/${pages} 页`;
+    if (S.cat !== 'all') {
+      const c = D.CATEGORIES.find(x => x.id === S.cat);
+      U.$('#headLead').textContent = c ? c.desc : '';
+    }
+
+    /* 结果主体 */
+    if (!list.length) {
+      U.$('#results').innerHTML = UI.empty('没有符合条件的模块',
+        '试着放宽价格上限、切换接口类型，或清空关键词。',
+        `<button class="btn btn-ghost btn-sm" onclick="location.href='catalog.html'">重置全部筛选</button>`);
+    } else if (S.view === 'card') {
+      U.$('#results').innerHTML = `<div class="mod-grid">${slice.map(m => UI.modCard(m, { qty: U.qtyOf(Store.scheme(), m.id) })).join('')}</div>`;
+    } else {
+      U.$('#results').innerHTML = `<div class="table-wrap">${slice.map(listRow).join('')}</div>`;
+    }
+
+    /* 已选筛选条 */
+    const chips = [];
+    if (S.cat !== 'all') chips.push(['cat', '分类：' + catName]);
+    if (S.bus !== 'all') chips.push(['bus', '接口：' + BUS_LABEL[S.bus]]);
+    if (S.volt !== 'all') chips.push(['volt', '电压：' + VOLT_LABEL[S.volt]]);
+    if (S.price < 2200) chips.push(['price', '≤ ¥' + S.price]);
+    if (S.q.trim()) chips.push(['q', '关键词：' + S.q.trim()]);
+    if (S.stockOnly) chips.push(['stockOnly', '仅有货']);
+    U.$('#activeChips').innerHTML = chips.length
+      ? chips.map(([k, l]) => `<button class="tag tag-accent" data-chip="${k}" style="cursor:pointer;border:1px solid rgba(167,139,250,.4)">${U.esc(l)} <span style="opacity:.6">✕</span></button>`).join('')
+      : `<span class="tag tag-line">未使用筛选条件</span>`;
+    U.$$('#activeChips [data-chip]').forEach(b => U.on(b, 'click', () => {
+      const k = b.getAttribute('data-chip');
+      if (k === 'price') S.price = 2200;
+      else if (k === 'q') S.q = '';
+      else if (k === 'stockOnly') S.stockOnly = false;
+      else S[k] = 'all';
+      S.page = 1; renderSide(); render();
+    }));
+
+    /* 分页 */
+    if (pages > 1) {
+      let h = `<button class="btn btn-ghost btn-sm" data-pg="${S.page - 1}" ${S.page === 1 ? 'disabled' : ''}>上一页</button>`;
+      for (let i = 1; i <= pages; i++) {
+        if (pages > 7 && Math.abs(i - S.page) > 2 && i !== 1 && i !== pages) {
+          if (Math.abs(i - S.page) === 3) h += `<span class="mono" style="color:var(--faint)">…</span>`;
+          continue;
+        }
+        h += `<button class="btn ${i === S.page ? 'btn-primary' : 'btn-ghost'} btn-sm" data-pg="${i}">${i}</button>`;
+      }
+      h += `<button class="btn btn-ghost btn-sm" data-pg="${S.page + 1}" ${S.page === pages ? 'disabled' : ''}>下一页</button>`;
+      U.$('#pager').innerHTML = h;
+      U.$$('#pager [data-pg]').forEach(b => U.on(b, 'click', () => {
+        S.page = Number(b.getAttribute('data-pg')); render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }));
+    } else U.$('#pager').innerHTML = '';
+
+    bindAdd();
+    UI.syncCount();
+    const hc = U.$('#headCount'); if (hc) hc.textContent = Store.count();
+  }
+
+  /* ---------- 加入方案 ---------- */
+  function bindAdd() {
+    U.$$('.js-add').forEach(b => U.on(b, 'click', e => {
+      e.preventDefault(); e.stopPropagation();
+      const id = b.getAttribute('data-id');
+      Store.addItem(id, 1);
+      Heat.record('add', id);
+      UI.toast(`已加入方案 · ${D.MODULE_MAP[id].name}`, 'ok');
+      render();
+    }));
+    U.$$('[data-module]').forEach(card => U.on(card, 'click', e => {
+      if (e.target.closest('a, button')) return;
+      const id = card.getAttribute('data-module');
+      if (S.view === 'list') location.href = 'module.html?id=' + id;
+    }));
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  U.on(U.$('#q'), 'input', U.debounce(e => { S.q = e.target.value; S.page = 1; render(); }, 260));
+  U.on(U.$('#fPrice'), 'input', U.debounce(e => { S.price = Number(e.target.value); S.page = 1; renderSide(); render(); }, 200));
+  U.on(U.$('#fSort'), 'change', e => { S.sort = e.target.value; S.page = 1; render(); });
+  U.on(U.$('#fStock'), 'change', e => { S.stockOnly = e.target.checked; S.page = 1; render(); });
+  U.on(U.$('#fBoard'), 'change', e => { S.showBoard = e.target.checked; S.page = 1; render(); });
+  U.on(U.$('#clearAll'), 'click', () => {
+    Object.assign(S, { cat: 'all', bus: 'all', volt: 'all', price: 2200, q: '', stockOnly: false, showBoard: true, page: 1 });
+    history.replaceState(null, '', 'catalog.html'); renderSide(); render();
+  });
+  U.$$('#viewSwitch button').forEach(b => U.on(b, 'click', () => {
+    U.$$('#viewSwitch button').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-selected', 'false'); });
+    b.classList.add('on'); b.setAttribute('aria-selected', 'true');
+    S.view = b.getAttribute('data-view'); S.page = 1; render();
+  }));
+
+  /* 移动端筛选开关 */
+  function checkNarrow() {
+    const narrow = window.innerWidth <= 1080;
+    U.$('#sideToggle').style.display = narrow ? 'grid' : 'none';
+    /* 宽屏常显筛选栏；缩到窄屏时必须收回，否则筛选面板会默认展开占满首屏 */
+    U.$('#side').classList.toggle('open', !narrow);
+  }
+  U.on(U.$('#sideToggle'), 'click', () => U.$('#side').classList.toggle('open'));
+  U.on(window, 'resize', checkNarrow);
+  checkNarrow();
+
+  renderSide(); render();
+  UI.hydrateIcons();
+})();
+</script>
+</body>
+</html>

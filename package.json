@@ -1,0 +1,17 @@
+{
+  "name": "mosaic-hardware-composer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MOSAIC 拼造 · 硬件定制平台：在线选型、兼容性校验、一键下单与后台履约",
+  "keywords": ["hardware", "composer", "esp32", "arduino", "stm32", "static-site"],
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "npx --yes serve . -l 8080",
+    "start": "python3 -m http.server 8080",
+    "vercel-dev": "npx --yes vercel dev"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

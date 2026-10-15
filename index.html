@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MOSAIC 拼造 · 硬件定制平台 — 把模块，拼成你想要的硬件</title>
+<meta name="description" content="在线选择并组合开发板、传感器、电机等硬件模块，自动校验兼容性，生成自定义方案并一键下单。">
+<meta name="theme-color" content="#f2f1ee">
+<meta property="og:title" content="MOSAIC 拼造 · 硬件定制平台">
+<meta property="og:description" content="像拼图一样，造出你的硬件。兼容性校验 + 一键下单。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23101014'/%3E%3Crect x='4' y='4' width='7' height='7' rx='1.5' fill='%23a78bfa'/%3E%3Crect x='13' y='13' width='7' height='7' rx='1.5' fill='%232d81ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<div id="navHost"></div>
+
+<main>
+  <!-- ============ HERO ============ -->
+  <section class="section" style="padding-top:clamp(40px,6vw,74px);padding-bottom:clamp(40px,6vw,72px)">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow"><span class="dot"></span> HARDWARE COMPOSER</span>
+          <h1 class="serif" style="margin:22px 0 0">把模块，<br>拼成你想要的硬件。</h1>
+          <p class="sec-lead" style="margin-top:20px;font-size:1.06rem">
+            从 <b id="statModules">86</b> 个开发板、传感器、电机与结构件中挑选组合，
+            平台实时校验总线数量、引脚占用、电平匹配、I2C 地址冲突与供电预算——
+            在花钱之前就知道这套方案能不能跑起来。
+          </p>
+          <div class="row row-wrap" style="margin-top:30px;gap:12px">
+            <a class="btn btn-primary btn-lg" href="builder.html">开始选型 <span aria-hidden="true">→</span></a>
+            <a class="btn btn-ghost btn-lg" href="catalog.html">浏览模块库</a>
+          </div>
+          <div class="row row-wrap" style="margin-top:26px;gap:8px">
+            <span class="tag tag-accent"><span class="dot"></span> 9 条兼容性规则</span>
+            <span class="tag tag-line">微信支付 / 支付宝已预留</span>
+            <span class="tag tag-line">GitHub Pages / Vercel / Cloudflare</span>
+          </div>
+        </div>
+
+        <!-- 组合示意图 -->
+        <div class="card card-pad-lg" style="background:var(--bg-raised);overflow:hidden">
+          <div class="spread" style="margin-bottom:14px">
+            <span class="card-meta">COMPOSITION CANVAS</span>
+            <span class="tag tag-ok"><span class="dot"></span> 校验通过</span>
+          </div>
+          <svg viewBox="0 0 420 320" width="100%" style="display:block" role="img" aria-label="模块组合示意图">
+            <defs>
+              <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#a78bfa" stop-opacity=".22"/>
+                <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <g stroke="rgba(16,16,20,.10)" stroke-width="1">
+              <path d="M0 40h420M0 90h420M0 140h420M0 190h420M0 240h420M0 290h420"/>
+              <path d="M60 0v320M120 0v320M180 0v320M240 0v320M300 0v320M360 0v320"/>
+            </g>
+            <circle cx="210" cy="160" r="112" fill="url(#gA)"/>
+            <!-- 主控 -->
+            <rect x="164" y="126" width="92" height="68" rx="8" fill="#101014"/>
+            <rect x="164" y="126" width="92" height="68" rx="8" fill="none" stroke="#a78bfa" stroke-width="1.4"/>
+            <text x="210" y="152" text-anchor="middle" fill="#f2f1ee" font-family="monospace" font-size="10">ESP32-S3</text>
+            <text x="210" y="167" text-anchor="middle" fill="rgba(242,241,238,.5)" font-family="monospace" font-size="7.5">CONTROLLER</text>
+            <g fill="#a78bfa">
+              <rect x="176" y="120" width="6" height="6" rx="1"/><rect x="196" y="120" width="6" height="6" rx="1"/>
+              <rect x="216" y="120" width="6" height="6" rx="1"/><rect x="236" y="120" width="6" height="6" rx="1"/>
+              <rect x="176" y="194" width="6" height="6" rx="1"/><rect x="196" y="194" width="6" height="6" rx="1"/>
+              <rect x="216" y="194" width="6" height="6" rx="1"/><rect x="236" y="194" width="6" height="6" rx="1"/>
+            </g>
+            <!-- 连线 -->
+            <g stroke="#a78bfa" stroke-width="1.2" fill="none" stroke-dasharray="3 3" opacity=".8">
+              <path d="M164 146 C120 146 116 66 74 66"/>
+              <path d="M256 146 C300 146 306 66 348 66"/>
+              <path d="M164 176 C120 176 116 256 74 256"/>
+              <path d="M256 176 C300 176 306 256 348 256"/>
+            </g>
+            <!-- 传感器 -->
+            <g>
+              <rect x="26" y="44" width="48" height="44" rx="6" fill="#faf9f7" stroke="rgba(16,16,20,.22)"/>
+              <g transform="translate(50 66)" stroke="#6d4ee0" stroke-width="1.3" fill="none"><path d="M-9 0h4l3-7 4 14 3-10 2 5 2-2h4"/></g>
+              <text x="50" y="102" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(16,16,20,.42)">SENSOR</text>
+            </g>
+            <g>
+              <rect x="348" y="44" width="48" height="44" rx="6" fill="#faf9f7" stroke="rgba(16,16,20,.22)"/>
+              <g transform="translate(372 66)" stroke="#6d4ee0" stroke-width="1.3" fill="none"><rect x="-8" y="-7" width="16" height="14" rx="2"/><path d="M-4-3h8M-4 0h8M-4 3h5"/></g>
+              <text x="372" y="102" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(16,16,20,.42)">DISPLAY</text>
+            </g>
+            <g>
+              <rect x="26" y="234" width="48" height="44" rx="6" fill="#faf9f7" stroke="rgba(16,16,20,.22)"/>
+              <g transform="translate(50 256)" stroke="#6d4ee0" stroke-width="1.3" fill="none"><circle cx="0" cy="0" r="7"/><circle cx="0" cy="0" r="2.4"/><path d="M0-11v3M0 8v3M-11 0h3M8 0h3"/></g>
+              <text x="50" y="292" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(16,16,20,.42)">ACTUATOR</text>
+            </g>
+            <g>
+              <rect x="348" y="234" width="48" height="44" rx="6" fill="#faf9f7" stroke="rgba(16,16,20,.22)"/>
+              <g transform="translate(372 256)" stroke="#6d4ee0" stroke-width="1.3" fill="none"><rect x="-9" y="-5" width="18" height="10" rx="2"/><path d="M10-2v4"/></g>
+              <text x="372" y="292" text-anchor="middle" font-family="monospace" font-size="7" fill="rgba(16,16,20,.42)">POWER</text>
+            </g>
+          </svg>
+          <div class="grid mt-16" style="grid-template-columns:repeat(3,1fr);gap:10px">
+            <div class="card card-flat" style="padding:11px 12px">
+              <div class="card-meta">引脚占用</div>
+              <div class="mono" style="font-size:1rem;font-weight:700">18 / 45</div>
+            </div>
+            <div class="card card-flat" style="padding:11px 12px">
+              <div class="card-meta">5V 负载</div>
+              <div class="mono" style="font-size:1rem;font-weight:700">0.42 A</div>
+            </div>
+            <div class="card card-flat" style="padding:11px 12px">
+              <div class="card-meta">方案总价</div>
+              <div class="mono" style="font-size:1rem;font-weight:700">¥286.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 数据条 ============ -->
+  <section style="border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg-sunken)">
+    <div class="wrap">
+      <div class="grid-4" id="statBar"></div>
+    </div>
+  </section>
+
+  <!-- ============ 01 分类浏览 ============ -->
+  <section class="section" id="categories">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-num">01</span><div>
+        <span class="sec-kicker">Browse by category</span>
+        <h2>八大分类，覆盖从原型到量产</h2>
+      </div></div>
+      <p class="sec-lead">每一类都有明确的接口、供电与算力标注。分类页支持关键词、接口类型、供电电压、价格区间与排序方式的组合筛选。</p>
+      <div class="grid-auto-258 mt-32" id="catGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ 02 选型热度 ============ -->
+  <section class="section" id="heat">
+    <div class="wrap">
+      <div class="spread" style="align-items:flex-end;flex-wrap:wrap;gap:20px">
+        <div>
+          <div class="sec-head" style="margin-bottom:0"><span class="sec-num">02</span><div>
+            <span class="sec-kicker">Selection heat</span>
+            <h2>选型热度（示意）</h2>
+          </div></div>
+          <p class="sec-lead mt-8">按 7 日 / 30 日热度指数排序，含环比涨跌与趋势线。指数由「平台需求基线」与「本机真实选型行为」加权合成。</p>
+        </div>
+        <div class="row row-wrap" style="gap:10px">
+          <div class="switch-group" id="heatRange" role="tablist" aria-label="热度时间范围">
+            <button class="on" data-range="7d" role="tab" aria-selected="true">近 7 日</button>
+            <button data-range="30d" role="tab" aria-selected="false">近 30 日</button>
+          </div>
+          <select class="select input-sm" id="heatCat" style="width:auto;min-width:130px" aria-label="热度分类筛选"></select>
+        </div>
+      </div>
+
+      <div class="heat-grid mt-24">
+        <div class="card" style="padding:10px">
+          <div class="spread" style="padding:6px 12px 10px;border-bottom:1px solid var(--line);margin-bottom:6px">
+            <span class="card-meta" id="heatCaption">近 7 日热度排行 · 全部分类</span>
+            <span class="mono" style="font-size:.68rem;color:var(--faint)" id="heatUpdated"></span>
+          </div>
+          <div id="heatList"></div>
+          <div class="row row-wrap" style="padding:12px;gap:8px;border-top:1px solid var(--line);margin-top:6px">
+            <button class="btn btn-ghost btn-sm" id="heatMore">查看完整排行</button>
+            <button class="btn btn-quiet btn-sm" id="heatReset">清空本机行为数据</button>
+          </div>
+        </div>
+
+        <div class="stack" style="--gap:16px">
+          <div class="card">
+            <span class="card-meta">分类热度均值</span>
+            <div id="heatCats" class="mt-16"></div>
+          </div>
+          <div class="card card-ink">
+            <div class="row" style="gap:8px;margin-bottom:10px">
+              <span style="color:var(--accent)"><span data-ico="info" data-size="17"></span></span>
+              <span class="card-meta" style="color:rgba(242,241,238,.6)">数据口径说明</span>
+            </div>
+            <p style="font-size:.82rem;line-height:1.65;margin:0;color:rgba(242,241,238,.78)" id="heatNote"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 工作方式 ============ -->
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-num">03</span><div>
+        <span class="sec-kicker">How it works</span>
+        <h2>从想法到下单，四步闭环</h2>
+      </div></div>
+      <p class="sec-lead">校验发生在加购的瞬间，而不是收到货之后。</p>
+      <div class="grid-auto-232 mt-32" id="flowGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ 04 用户画像 ============ -->
+  <section class="section" id="personas">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-num">04</span><div>
+        <span class="sec-kicker">Who it's for</span>
+        <h2>五类目标用户，一套平台</h2>
+      </div></div>
+      <p class="sec-lead">不同角色的核心诉求差异极大：学生怕买错，工程师怕返工，初创怕断供。平台用同一套数据模型分别回应。</p>
+      <div class="grid-auto-300 mt-32" id="personaGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ 05 交易与部署 ============ -->
+  <section class="section" id="trade">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-num">05</span><div>
+        <span class="sec-kicker">Commerce &amp; deploy</span>
+        <h2>下单、付款、后台，全链路已打通</h2>
+      </div></div>
+      <div class="grid-auto-288 mt-32" id="tradeGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="banner-ink">
+        <span class="eyebrow" style="border-color:var(--accent);color:var(--accent);background:rgba(167,139,250,.12)">READY</span>
+        <h2 class="serif mt-24" style="font-size:clamp(1.6rem,3.4vw,2.5rem);max-width:22ch">先验证可行性，再决定要不要花钱。</h2>
+        <p class="muted mt-16" style="max-width:56ch">工作台实时给出兼容性结论、引脚占用、功耗估算与成本合计。方案可保存为模板，随时复购或改成批量订单。</p>
+        <div class="row row-wrap mt-32" style="gap:12px">
+          <a class="btn btn-accent btn-lg" href="builder.html">打开选型工作台</a>
+          <a class="btn btn-ghost btn-lg" href="docs.html" style="background:transparent;color:var(--invert-fg);border-color:rgba(242,241,238,.3)">阅读需求说明书</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="footHost"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/core.js"></script>
+<script>
+(function () {
+  const { U, ICO, D, UI, Heat, Store, Compat } = window.Mosaic;
+
+  /* ---------- 注入外壳 ---------- */
+  UI.mount('index.html');
+
+  /* ---------- 数据条 ---------- */
+  const totalStock = D.MODULES.reduce((a, m) => a + m.stock, 0);
+  U.$('#statModules').textContent = D.MODULES.length;
+  const stats = [
+    { k: '在售模块', v: U.int(D.MODULES.length), s: '覆盖 8 大分类' },
+    { k: '兼容性规则', v: '9', s: '总线 / 电平 / 地址 / 功耗 / 算力' },
+    { k: '可组合方案', v: '10⁹+', s: '模块自由组合空间' },
+    { k: '现货库存', v: U.int(totalStock), s: '件 · 实时同步' },
+  ];
+  U.$('#statBar').innerHTML = stats.map((s, i) =>
+    `<div class="stat-cell">
+      <div class="card-meta">${s.k}</div>
+      <div class="mono" style="font-size:1.7rem;font-weight:700;letter-spacing:-.03em;margin:6px 0 2px">${s.v}</div>
+      <div style="font-size:.76rem;color:var(--faint)">${s.s}</div>
+    </div>`).join('');
+
+  /* ---------- 01 分类 ---------- */
+  U.$('#catGrid').innerHTML = D.CATEGORIES.map(c => {
+    const items = D.MODULES.filter(m => m.cat === c.id);
+    const min = Math.min(...items.map(m => m.price));
+    return `<a class="card card-hover" href="catalog.html?cat=${c.id}" style="display:block;color:inherit">
+      <div class="spread" style="align-items:flex-start">
+        <span style="color:var(--accent-deep)">${ICO.svg(c.icon, 26)}</span>
+        <span class="card-meta">${String(items.length).padStart(2, '0')} 款</span>
+      </div>
+      <h3 class="mt-16" style="font-size:1.02rem">${c.name}</h3>
+      <div class="mono" style="font-size:.68rem;color:var(--faint);letter-spacing:.1em;text-transform:uppercase;margin-top:2px">${c.en}</div>
+      <p style="font-size:.83rem;color:var(--muted);line-height:1.6;margin:10px 0 0;min-height:4.8em">${c.desc}</p>
+      <div class="spread mt-16" style="padding-top:12px;border-top:1px solid var(--line)">
+        <span class="mono" style="font-size:.76rem">起 ${U.money(min)}</span>
+        <span class="link-arrow" style="color:var(--accent-ink)">进入分类</span>
+      </div>
+    </a>`;
+  }).join('');
+
+  /* ---------- 02 热度 ---------- */
+  let heatRange = '7d', heatCat = 'all';
+  U.$('#heatCat').innerHTML = `<option value="all">全部分类</option>` +
+    D.CATEGORIES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+  function renderHeat() {
+    const list = Heat.ranking({ range: heatRange, cat: heatCat, limit: 8 });
+    const ev = Heat.events();
+    const localCount = Object.keys(ev.items || {}).length;
+    U.$('#heatList').innerHTML = list.length
+      ? list.map((e, i) => Heat.rowHTML(e, i + 1)).join('')
+      : UI.empty('该分类暂无热度数据', '换一个分类或时间范围看看。');
+
+    const catName = heatCat === 'all' ? '全部分类' : (D.CATEGORIES.find(c => c.id === heatCat) || {}).name;
+    const rkLabel = heatRange === '7d' ? '近 7 日' : '近 30 日';
+    U.$('#heatCaption').textContent = `${rkLabel}热度排行 · ${catName} · Top ${list.length}`;
+    U.$('#heatUpdated').textContent = localCount
+      ? `已融合本机 ${localCount} 个模块的选型行为`
+      : '纯基线数据（尚无本机行为）';
+
+    U.$('#heatCats').innerHTML = Heat.categoryHeat(heatRange).map(r =>
+      `<div class="heat-row" style="grid-template-columns:1fr auto;cursor:pointer;padding:8px 6px" data-cat="${r.cat.id}">
+        <div>
+          <span class="heat-name" style="font-size:.84rem">${r.cat.name}</span>
+          <span class="heat-sub">${r.n} 款 · 最热 ${U.esc(r.top ? r.top.name : '—')}</span>
+          <div class="heat-bar"><i style="width:${r.pct}%"></i></div>
+        </div>
+        <span class="heat-val" style="font-size:.8rem">${r.avg.toFixed(1)}</span>
+      </div>`).join('');
+
+    U.$$('#heatList .heat-row, #heatCats .heat-row').forEach(row => {
+      U.on(row, 'click', () => {
+        const id = row.getAttribute('data-module');
+        const cat = row.getAttribute('data-cat');
+        if (id) location.href = 'module.html?id=' + id;
+        else if (cat) { heatCat = cat; U.$('#heatCat').value = cat; renderHeat(); }
+      });
+    });
+  }
+  U.$('#heatNote').innerHTML = D.HEAT_META.disclaimer + '<br><br><span style="opacity:.7">' +
+    D.HEAT_META.formula + '</span>';
+  U.$$('#heatRange button').forEach(b => U.on(b, 'click', () => {
+    U.$$('#heatRange button').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-selected', 'false'); });
+    b.classList.add('on'); b.setAttribute('aria-selected', 'true');
+    heatRange = b.getAttribute('data-range'); renderHeat();
+  }));
+  U.on(U.$('#heatCat'), 'change', e => { heatCat = e.target.value; renderHeat(); });
+  U.on(U.$('#heatMore'), 'click', () => { location.href = 'catalog.html?sort=heat'; });
+  U.on(U.$('#heatReset'), 'click', () => {
+    Heat.clearEvents(); renderHeat(); UI.toast('已清空本机选型行为，热度回退为纯基线数据');
+  });
+  renderHeat();
+
+  /* ---------- 03 流程 ---------- */
+  U.$('#flowGrid').innerHTML = D.FLOW.map((f, i) =>
+    `<div class="card card-hover" style="position:relative">
+      <div class="spread" style="align-items:flex-start">
+        <span class="sec-num" style="padding-top:0">${f.n}</span>
+        <span class="tag ${f.actor === '系统' ? 'tag-accent' : 'tag-line'}">${f.actor}</span>
+      </div>
+      <h3 class="mt-16" style="font-size:1rem">${f.title}</h3>
+      <p style="font-size:.82rem;color:var(--muted);line-height:1.62;margin:9px 0 0">${f.desc}</p>
+      <div class="mono" style="font-size:.68rem;color:var(--faint);margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">产出 · ${f.out}</div>
+    </div>`).join('');
+
+  /* ---------- 04 画像 ---------- */
+  U.$('#personaGrid').innerHTML = D.PERSONAS.map(p =>
+    `<div class="card card-hover">
+      <div class="spread" style="align-items:flex-start">
+        <span style="color:var(--accent-deep)">${ICO.svg(p.icon, 24)}</span>
+        <span class="tag tag-accent">${p.tag}</span>
+      </div>
+      <h3 class="mt-16" style="font-size:1rem">${p.name}</h3>
+      <div class="mono" style="font-size:.7rem;color:var(--faint);margin-top:6px">预算区间 ${p.budget}</div>
+      <div style="margin-top:14px;font-size:.82rem;line-height:1.65">
+        <div style="color:var(--warn);display:flex;gap:7px"><span style="flex:none;margin-top:3px">${ICO.svg('warn', 13)}</span><span>${p.pain}</span></div>
+        <div style="color:var(--muted);display:flex;gap:7px;margin-top:9px"><span style="flex:none;margin-top:3px">${ICO.svg('info', 13)}</span><span>${p.need}</span></div>
+        <div style="color:var(--ok);display:flex;gap:7px;margin-top:9px"><span style="flex:none;margin-top:3px">${ICO.svg('check', 13)}</span><span>${p.value}</span></div>
+      </div>
+    </div>`).join('');
+
+  /* ---------- 05 交易与部署 ---------- */
+  const trade = [
+    { icon: 'cart', t: '下单与付款', d: '收货信息校验、运费与加急计费、微信支付与支付宝双通道扫码、30 分钟支付倒计时与状态轮询。', href: 'checkout.html', cta: '去结算' },
+    { icon: 'console', t: '后台处理', d: '订单看板与状态流转：确认收款 → 备货 → 录入快递单号发货 → 完成；支持退款、库存调整与 CSV/JSON 导出。', href: 'admin.html', cta: '进入后台' },
+    { icon: 'card', t: '支付接入已预留', d: '微信支付 V3 Native 下单与支付宝当面付的接口签名、回调验签与 Serverless 示例代码均已就位，替换密钥即可上线。', href: 'docs.html#pay', cta: '查看接入方案' },
+    { icon: 'zap', t: '多平台部署', d: '纯静态站点，零构建步骤。GitHub Pages、Vercel、Cloudflare Pages 三套配置齐备，含自动部署工作流。', href: 'docs.html#deploy', cta: '查看部署说明' },
+  ];
+  U.$('#tradeGrid').innerHTML = trade.map(x =>
+    `<div class="card card-hover" style="display:flex;flex-direction:column">
+      <span style="color:var(--accent-deep)">${ICO.svg(x.icon, 24)}</span>
+      <h3 class="mt-16" style="font-size:1rem">${x.t}</h3>
+      <p style="font-size:.83rem;color:var(--muted);line-height:1.62;margin:9px 0 18px;flex:1">${x.d}</p>
+      <a class="link-arrow" href="${x.href}">${x.cta}</a>
+    </div>`).join('');
+
+  UI.hydrateIcons();
+})();
+</script>
+</body>
+</html>

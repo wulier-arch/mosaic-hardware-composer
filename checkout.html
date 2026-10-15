@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>结算下单 · MOSAIC 拼造</title>
+<meta name="theme-color" content="#f2f1ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23101014'/%3E%3Crect x='4' y='4' width='7' height='7' rx='1.5' fill='%23a78bfa'/%3E%3Crect x='13' y='13' width='7' height='7' rx='1.5' fill='%232d81ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<div id="navHost"></div>
+
+<header class="page-head">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">首页</a><span>/</span><a href="builder.html">选型工作台</a><span>/</span>结算下单</div>
+    <span class="sec-kicker">Checkout</span>
+    <h1 class="serif" style="font-size:clamp(1.6rem,3.4vw,2.4rem)">确认方案，填写收货信息</h1>
+    <div class="steps mt-24" id="steps">
+      <div class="step done" data-s="1"><span class="step-dot">1</span><span class="step-label">方案确认</span></div>
+      <span class="step-line"></span>
+      <div class="step on" data-s="2"><span class="step-dot">2</span><span class="step-label">收货信息</span></div>
+      <span class="step-line"></span>
+      <div class="step" data-s="3"><span class="step-dot">3</span><span class="step-label">支付方式</span></div>
+      <span class="step-line"></span>
+      <div class="step" data-s="4"><span class="step-dot">4</span><span class="step-label">提交订单</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="section" style="padding-top:34px">
+  <div class="wrap">
+    <div id="guard"></div>
+    <div class="layout-side" style="grid-template-columns:minmax(0,1fr) 380px" id="checkoutLayout">
+      <!-- ===== 左：表单 ===== -->
+      <div>
+        <!-- 方案确认 -->
+        <section class="card card-pad-lg mb-16" id="sec1">
+          <div class="spread mb-16">
+            <div>
+              <span class="card-meta">Step 1</span>
+              <h3 style="font-size:1.05rem;margin-top:3px">方案确认</h3>
+            </div>
+            <a class="link-arrow" href="builder.html" style="font-size:.78rem">返回工作台修改</a>
+          </div>
+          <div id="schemeLines"></div>
+          <div class="row row-wrap mt-16" style="gap:8px">
+            <span class="tag tag-line" id="valTag"></span>
+            <span class="tag tag-line" id="diffTag"></span>
+          </div>
+        </section>
+
+        <!-- 收货信息 -->
+        <section class="card card-pad-lg mb-16" id="sec2">
+          <div class="spread mb-16">
+            <div>
+              <span class="card-meta">Step 2</span>
+              <h3 style="font-size:1.05rem;margin-top:3px">收货信息</h3>
+            </div>
+            <span class="mono" style="font-size:.68rem;color:var(--faint)">带 <span style="color:var(--danger)">*</span> 为必填</span>
+          </div>
+
+          <div class="field-grid">
+            <label class="field" id="f-name">
+              <span class="field-label">收货人 <span class="req">*</span></span>
+              <input class="input" name="name" placeholder="请输入真实姓名" autocomplete="name">
+              <span class="field-err">请填写收货人姓名</span>
+            </label>
+            <label class="field" id="f-phone">
+              <span class="field-label">手机号码 <span class="req">*</span></span>
+              <input class="input" name="phone" placeholder="11 位手机号" inputmode="numeric" autocomplete="tel">
+              <span class="field-err">请填写有效的 11 位手机号</span>
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label class="field" id="f-province">
+              <span class="field-label">所在省份 / 直辖市 <span class="req">*</span></span>
+              <select class="select" name="province" id="province">
+                <option value="">请选择</option>
+              </select>
+              <span class="field-err">请选择省份</span>
+            </label>
+            <label class="field" id="f-city">
+              <span class="field-label">城市 / 区县 <span class="req">*</span></span>
+              <input class="input" name="city" placeholder="如：深圳市南山区" autocomplete="address-level2">
+              <span class="field-err">请填写城市 / 区县</span>
+            </label>
+          </div>
+
+          <label class="field" id="f-addr">
+            <span class="field-label">详细地址 <span class="req">*</span></span>
+            <input class="input" name="addr" placeholder="街道、门牌号、楼层、房间号" autocomplete="street-address">
+            <span class="field-err">请填写详细地址（不少于 5 个字符）</span>
+          </label>
+
+          <div class="field-grid">
+            <label class="field">
+              <span class="field-label">电子邮箱</span>
+              <input class="input" name="email" placeholder="用于接收订单与发货通知" autocomplete="email">
+              <span class="field-err" id="err-email">邮箱格式不正确</span>
+            </label>
+            <label class="field">
+              <span class="field-label">邮政编码</span>
+              <input class="input" name="zip" placeholder="选填" inputmode="numeric" autocomplete="postal-code">
+            </label>
+          </div>
+
+          <label class="field mb-0">
+            <span class="field-label">订单备注</span>
+            <textarea class="textarea" name="note" placeholder="如：需要预烧录固件、指定接口朝向、发票寄送方式等"></textarea>
+          </label>
+        </section>
+
+        <!-- 发票 -->
+        <section class="card card-pad-lg mb-16" id="secInv">
+          <div class="spread mb-16">
+            <div>
+              <span class="card-meta">Step 2b</span>
+              <h3 style="font-size:1.05rem;margin-top:3px">发票信息</h3>
+            </div>
+            <label class="check" style="margin:0"><input type="checkbox" id="needInv"><span>需要发票</span></label>
+          </div>
+          <div id="invFields" class="hidden">
+            <div class="field-grid">
+              <label class="field" id="f-invTitle">
+                <span class="field-label">发票抬头 <span class="req">*</span></span>
+                <input class="input" name="invTitle" placeholder="个人或公司全称">
+                <span class="field-err">请填写发票抬头</span>
+              </label>
+              <label class="field" id="f-invType">
+                <span class="field-label">发票类型</span>
+                <select class="select" name="invType">
+                  <option value="电子普通发票">电子普通发票</option>
+                  <option value="增值税专用发票">增值税专用发票</option>
+                </select>
+              </label>
+            </div>
+            <label class="field mb-0" id="f-invTax">
+              <span class="field-label">纳税人识别号 <span class="req">*</span></span>
+              <input class="input" name="invTax" placeholder="公司开票必填">
+              <span class="field-err">请填写纳税人识别号</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- 支付方式 -->
+        <section class="card card-pad-lg" id="sec3">
+          <div class="spread mb-16">
+            <div>
+              <span class="card-meta">Step 3</span>
+              <h3 style="font-size:1.05rem;margin-top:3px">支付方式</h3>
+            </div>
+            <span class="mono" style="font-size:.68rem;color:var(--faint)">提交后进入扫码支付</span>
+          </div>
+          <div class="stack" style="--gap:10px" id="payOptions"></div>
+          <label class="check mt-24"><input type="checkbox" id="agree">
+            <span>我已阅读并同意《平台服务条款》《硬件模块退换货政策》，并确认方案清单与收货信息无误</span></label>
+          <span class="field-err" id="err-agree" style="display:none">请先同意服务条款</span>
+        </section>
+      </div>
+
+      <!-- ===== 右：订单摘要 ===== -->
+      <aside class="builder-col sticky" style="position:sticky">
+        <div class="card">
+          <div class="spread mb-16">
+            <span class="card-meta">订单摘要</span>
+            <span class="tag tag-line" id="sumCount">0 件</span>
+          </div>
+          <div id="summary"></div>
+        </div>
+        <div class="mt-16" style="flex:none">
+          <button class="btn btn-primary btn-block btn-lg" id="submit">提交订单并支付</button>
+          <div class="mono" style="font-size:.66rem;color:var(--faint);text-align:center;margin-top:8px">
+            提交后生成订单号，30 分钟内完成支付
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<div id="footHost"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/core.js"></script>
+<script>
+(function () {
+  const { U, ICO, D, UI, Heat, Store, Compat, Pay } = window.Mosaic;
+  UI.mount('builder.html');
+
+  let scheme = Store.scheme();
+  let rep = Compat.evaluate(scheme);
+  let channel = 'wechat';
+
+  /* ---------- 空方案守卫 ---------- */
+  if (!rep.items.length || rep.errors > 0) {
+    U.$('#checkoutLayout').innerHTML = UI.empty(
+      rep.items.length ? '方案还有未解决的冲突' : '方案是空的',
+      rep.items.length
+        ? `当前有 ${rep.errors} 项兼容性冲突，需要先在工作台解决才能结算。`
+        : '请先在选型工作台添加模块，生成一份可下单的方案。',
+      `<a class="btn btn-primary btn-sm" href="builder.html">${rep.items.length ? '去解决冲突' : '去选型工作台'}</a>`
+    );
+    UI.hydrateIcons();
+    return;
+  }
+
+  /* ---------- 省份 ---------- */
+  const PROVINCES = ['北京市','上海市','天津市','重庆市','广东省','江苏省','浙江省','山东省','河南省','四川省','湖北省','湖南省','河北省','福建省','安徽省','陕西省','辽宁省','江西省','广西壮族自治区','山西省','云南省','贵州省','吉林省','黑龙江省','内蒙古自治区','新疆维吾尔自治区','西藏自治区','青海省','宁夏回族自治区','甘肃省','海南省','中国香港','中国澳门','中国台湾'];
+  U.$('#province').innerHTML = '<option value="">请选择</option>' +
+    PROVINCES.map(p => `<option value="${p}">${p}</option>`).join('');
+
+  /* ---------- 回填草稿 ---------- */
+  const draft = Store.form();
+  Object.keys(draft).forEach(k => {
+    const el = document.querySelector(`[name="${k}"]`);
+    if (el) el.value = draft[k];
+  });
+  if (draft.invoice) {
+    U.$('#needInv').checked = true;
+    U.$('#invFields').classList.remove('hidden');
+  }
+  U.on(U.$('#needInv'), 'change', e => {
+    U.$('#invFields').classList.toggle('hidden', !e.target.checked);
+    renderSummary();
+  });
+
+  /* ---------- 支付渠道选项 ---------- */
+  function renderPayOptions() {
+    U.$('#payOptions').innerHTML = D.PAY_CHANNELS.map(c => `
+      <label class="card card-hover" data-ch="${c.id}" style="display:flex;gap:13px;align-items:flex-start;cursor:pointer;padding:15px;border-color:${c.id === channel ? 'var(--accent)' : 'var(--line)'};${c.id === channel ? 'box-shadow:0 0 0 1px var(--accent)' : ''}">
+        <input type="radio" name="channel" value="${c.id}" ${c.id === channel ? 'checked' : ''} style="margin-top:3px;accent-color:var(--accent-deep)">
+        <span style="flex:1;min-width:0">
+          <span class="spread">
+            <b style="font-size:.92rem">${c.name} <span class="mono" style="font-size:.68rem;color:var(--faint);font-weight:400">${c.en}</span></b>
+            <span class="tag" style="background:${c.tone}1a;color:${c.tone};border-color:${c.tone}44">${c.mode}</span>
+          </span>
+          <span style="display:block;font-size:.8rem;color:var(--muted);line-height:1.6;margin-top:7px">${c.desc}</span>
+          <span class="row row-wrap" style="gap:5px;margin-top:9px">
+            ${c.required.map(r => `<span class="tag tag-line" style="font-size:.62rem">${r}</span>`).join('')}
+          </span>
+        </span>
+      </label>`).join('');
+    U.$$('#payOptions [data-ch]').forEach(el => U.on(el, 'click', () => {
+      channel = el.getAttribute('data-ch');
+      renderPayOptions(); renderSummary();
+    }));
+  }
+
+  /* ---------- 表单读取 ---------- */
+  function readForm() {
+    const g = n => { const el = document.querySelector(`[name="${n}"]`); return el ? el.value.trim() : ''; };
+    return {
+      name: g('name'), phone: g('phone'), province: g('province'), city: g('city'),
+      addr: g('addr'), email: g('email'), zip: g('zip'), note: g('note'),
+      invoice: U.$('#needInv').checked, invTitle: g('invTitle'), invType: g('invType'), invTax: g('invTax'),
+    };
+  }
+
+  /* ---------- 运费 ---------- */
+  function shippingOf(province, goods) {
+    if (!goods) return 0;
+    if (goods >= D.SHIPPING.freeThreshold) return 0;
+    return D.SHIPPING.remoteProvinces.includes(province) ? D.SHIPPING.remoteFee : D.SHIPPING.fee;
+  }
+
+  /* ---------- 摘要 ---------- */
+  function renderSummary() {
+    const f = readForm();
+    const cost = rep.cost;
+    const ship = shippingOf(f.province, cost.subtotal + cost.assembly + cost.rush);
+    const remote = D.SHIPPING.remoteProvinces.includes(f.province);
+    const total = cost.subtotal + cost.assembly + cost.rush + ship;
+
+    U.$('#sumCount').textContent = cost.itemCount + ' 件';
+    U.$('#schemeLines').innerHTML = rep.items.map(({ m, qty }) => UI.lineRow({
+      id: m.id, name: m.name, brand: m.brand, price: m.price, qty, sum: m.price * qty,
+    })).join('') + `
+      <div class="spread" style="padding:12px 0 0">
+        <span class="mono" style="font-size:.78rem;color:var(--muted)">模块小计 · ${cost.kinds} 类 ${cost.itemCount} 件</span>
+        <span class="mono" style="font-weight:700">${U.money(cost.subtotal)}</span>
+      </div>`;
+
+    U.$('#summary').innerHTML = `
+      ${rep.items.map(({ m, qty }) => `
+        <div class="spread" style="padding:7px 0;border-bottom:1px solid var(--line)">
+          <span style="font-size:.8rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${U.esc(m.name)} <span class="mono" style="color:var(--faint)">×${qty}</span></span>
+          <span class="mono" style="font-size:.8rem;white-space:nowrap;margin-left:8px">${U.money(m.price * qty)}</span>
+        </div>`).join('')}
+      <div class="mt-16">
+        <div class="spread" style="padding:4px 0"><span style="font-size:.82rem;color:var(--muted)">模块小计</span><span class="mono" style="font-size:.82rem">${U.money(cost.subtotal)}</span></div>
+        ${cost.assembly ? `<div class="spread" style="padding:4px 0"><span style="font-size:.82rem;color:var(--muted)">代装配服务</span><span class="mono" style="font-size:.82rem">${U.money(cost.assembly)}</span></div>` : ''}
+        ${cost.rush ? `<div class="spread" style="padding:4px 0"><span style="font-size:.82rem;color:var(--muted)">加急处理 (${Math.round(D.SHIPPING.rushFeeRate * 100)}%)</span><span class="mono" style="font-size:.82rem">${U.money(cost.rush)}</span></div>` : ''}
+        <div class="spread" style="padding:4px 0">
+          <span style="font-size:.82rem;color:var(--muted)">运费${remote ? '（偏远地区）' : ''}</span>
+          <span class="mono" style="font-size:.82rem">${ship ? U.money(ship) : '免运费'}</span>
+        </div>
+        <div class="spread" style="padding:12px 0 0;margin-top:8px;border-top:1px solid var(--line-mid)">
+          <span style="font-weight:600">应付合计</span>
+          <span class="mono" style="font-size:1.25rem;font-weight:700">${U.money(total)}</span>
+        </div>
+        ${ship ? `<div class="mono" style="font-size:.66rem;color:var(--faint);text-align:right;margin-top:5px">再购 ${U.money(D.SHIPPING.freeThreshold - (cost.subtotal + cost.assembly + cost.rush))} 可免运费</div>` : ''}
+      </div>
+      <div class="mt-16" style="padding-top:14px;border-top:1px solid var(--line)">
+        <div class="spread"><span class="card-meta">支付方式</span>
+          <span class="tag tag-accent">${(Pay.channel(channel) || {}).name || '—'}</span></div>
+        <div class="spread mt-8"><span class="card-meta">预计发货</span>
+          <span class="mono" style="font-size:.74rem">${(scheme.service || {}).rush ? D.SHIPPING.etaDays.rush : D.SHIPPING.etaDays.normal} 天</span></div>
+      </div>`;
+
+    U.$('#valTag').textContent = rep.verdict === 'ok' ? '兼容性校验通过' : `通过（${rep.warnings} 项提醒）`;
+    U.$('#diffTag').textContent = `难度 ${rep.difficulty}/5 · 预计装配 ${rep.hours} 小时`;
+    return { f, ship, total, cost };
+  }
+
+  /* ---------- 校验 ---------- */
+  function validate() {
+    const f = readForm();
+    let ok = true;
+    const mark = (id, bad) => {
+      const el = U.$('#' + id);
+      if (!el) return;
+      el.classList.toggle('invalid', !!bad);
+      if (bad) ok = false;
+    };
+    mark('f-name', !f.name);
+    mark('f-phone', !/^1[3-9]\d{9}$/.test(f.phone));
+    mark('f-province', !f.province);
+    mark('f-city', !f.city);
+    mark('f-addr', f.addr.length < 5);
+    const emailBad = f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email);
+    const emailField = document.querySelector('[name="email"]').closest('.field');
+    emailField.classList.toggle('invalid', !!emailBad);
+    if (emailBad) ok = false;
+    if (f.invoice) {
+      mark('f-invTitle', !f.invTitle);
+      const needTax = f.invType === '增值税专用发票';
+      mark('f-invTax', needTax && !f.invTax);
+    }
+    const agree = U.$('#agree').checked;
+    U.$('#err-agree').style.display = agree ? 'none' : 'block';
+    if (!agree) ok = false;
+
+    if (!ok) {
+      const first = U.$('.field.invalid, #err-agree[style*="block"]');
+      if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      UI.toast('请检查标红的必填项', 'err');
+    }
+    return { ok, f };
+  }
+
+  /* ---------- 提交 ---------- */
+  U.on(U.$('#submit'), 'click', () => {
+    const { ok, f } = validate();
+    if (!ok) return;
+
+    const ship = shippingOf(f.province, rep.cost.subtotal + rep.cost.assembly + rep.cost.rush);
+    const amount = rep.cost.subtotal + rep.cost.assembly + rep.cost.rush + ship;
+
+    /* 校验库存（本地模拟；真实环境由服务端在创建订单时原子扣减） */
+    const lack = rep.items.filter(({ m, qty }) => Store.stockOf(m.id) < qty);
+    if (lack.length) {
+      UI.toast(`库存不足：${lack.map(x => x.m.name).join('、')}`, 'err', 4000);
+      return;
+    }
+
+    const order = Store.createOrder({
+      schemeId: scheme.id,
+      schemeName: scheme.name,
+      lines: rep.items.map(({ m, qty }) => ({
+        id: m.id, name: m.name, cat: m.cat, brand: m.brand,
+        price: m.price, qty, sum: m.price * qty,
+      })),
+      cost: Object.assign({}, rep.cost, { shipping: ship, total: amount }),
+      amount,
+      service: Object.assign({}, scheme.service),
+      contact: {
+        name: f.name, phone: f.phone, province: f.province, city: f.city,
+        addr: f.addr, email: f.email, zip: f.zip, full: `${f.province} ${f.city} ${f.addr}`,
+      },
+      invoice: f.invoice ? { title: f.invTitle, type: f.invType, tax: f.invTax } : null,
+      note: f.note,
+      payChannel: channel,
+      validation: {
+        verdict: rep.verdict, errors: rep.errors, warnings: rep.warnings,
+        difficulty: rep.difficulty, hours: rep.hours,
+      },
+    });
+
+    Store.saveForm(f);
+    Heat.record('order', rep.board ? rep.board.id : rep.items[0].m.id);
+    UI.toast('订单已创建，正在跳转支付…');
+    setTimeout(() => location.href = 'pay.html?order=' + order.id, 500);
+  });
+
+  /* ---------- 草稿自动保存 ---------- */
+  U.$$('[name]').forEach(el => U.on(el, 'change', () => { Store.saveForm(readForm()); renderSummary(); }));
+  U.on(U.$('#province'), 'change', () => { Store.saveForm(readForm()); renderSummary(); });
+
+  renderPayOptions();
+  renderSummary();
+  UI.hydrateIcons();
+})();
+</script>
+</body>
+</html>

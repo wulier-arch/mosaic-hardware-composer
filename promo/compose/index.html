@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>MOSAIC · 3D 合成舞台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Instrument+Serif&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+  /* =========================================================
+     舞台基础
+     ========================================================= */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #06060a; }
+  body {
+    font-family: "Archivo", "Inter", -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+    color: #f2f1ee;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "tnum" 1;
+  }
+  .mono { font-family: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+  .serif { font-family: "Instrument Serif", "Songti SC", Georgia, serif; font-weight: 400; }
+
+  /* 背景层 */
+  #bg { position: absolute; inset: 0; background:
+      radial-gradient(ellipse 62% 58% at 50% 46%, #16121f 0%, #0b0a10 46%, #06060a 100%);
+  }
+  #glow { position: absolute; inset: 0; opacity: 0; }
+  #grid {
+    position: absolute; left: -50%; top: -20%; width: 200%; height: 160%;
+    background-image:
+      linear-gradient(rgba(167,139,250,.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(167,139,250,.055) 1px, transparent 1px);
+    background-size: 90px 90px;
+    transform: perspective(900px) rotateX(66deg) translateZ(-160px);
+    mask-image: radial-gradient(ellipse 46% 52% at 50% 42%, #000 12%, transparent 72%);
+    -webkit-mask-image: radial-gradient(ellipse 46% 52% at 50% 42%, #000 12%, transparent 72%);
+  }
+  #floor-glow {
+    position: absolute; left: 50%; top: 52%; width: 1500px; height: 420px;
+    transform: translate(-50%,-50%);
+    background: radial-gradient(ellipse at center, rgba(167,139,250,.20), transparent 66%);
+    filter: blur(30px);
+  }
+
+  /* 3D 世界 */
+  #stage { position: absolute; inset: 0; perspective: 1500px; perspective-origin: 50% 46%; }
+  #world { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; }
+  .layer { position: absolute; transform-style: preserve-3d; }
+
+  /* 屏幕面板 */
+  .plane {
+    position: absolute; left: 0; top: 0; overflow: hidden;
+    border-radius: 12px; background: #f2f1ee;
+    box-shadow: 0 40px 100px rgba(0,0,0,.62), 0 0 0 1px rgba(167,139,250,.30), 0 0 74px rgba(167,139,250,.15);
+    transform-origin: 50% 50%;
+  }
+  .plane > img { position: absolute; left: 0; top: 0; display: block; transform-origin: 0 0; }
+  .plane .bar {
+    position: absolute; left: 0; right: 0; top: 0; height: 26px;
+    background: rgba(16,16,20,.86); backdrop-filter: blur(6px);
+    display: flex; align-items: center; gap: 7px; padding: 0 12px; z-index: 3;
+  }
+  .plane .bar i { width: 8px; height: 8px; border-radius: 50%; background: rgba(242,241,238,.26); }
+  .plane .bar i:first-child { background: #a78bfa; }
+  .plane .bar span { margin-left: 8px; font-family: "Geist Mono", monospace; font-size: 10.5px; letter-spacing: .1em; color: rgba(242,241,238,.5); }
+  .plane .scan {
+    position: absolute; left: 0; right: 0; height: 3px; z-index: 4; opacity: 0;
+    background: linear-gradient(90deg, transparent, #a78bfa, transparent);
+    box-shadow: 0 0 22px 6px rgba(167,139,250,.55);
+  }
+
+  /* 模块小卡（3D 飞入） */
+  .chip {
+    position: absolute; left: 0; top: 0; padding: 11px 15px; border-radius: 10px;
+    background: linear-gradient(140deg, rgba(62,48,96,.97), rgba(30,24,46,.97));
+    border: 1px solid rgba(167,139,250,.72);
+    box-shadow: 0 14px 34px rgba(0,0,0,.55), 0 0 30px rgba(167,139,250,.20), inset 0 1px 0 rgba(255,255,255,.10);
+    transform-origin: 50% 50%; white-space: nowrap; display: flex; align-items: center; gap: 10px;
+  }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: #a78bfa; box-shadow: 0 0 12px #a78bfa; flex: none; }
+  .chip .nm { font-size: 15px; font-weight: 600; color: #f2f1ee; }
+  .chip .sub { font-family: "Geist Mono", monospace; font-size: 10.5px; color: rgba(242,241,238,.5); }
+
+  /* 规则卡（3D 环绕） */
+  .rule {
+    position: absolute; left: 0; top: 0; width: 232px; padding: 15px 17px; border-radius: 12px;
+    background: linear-gradient(150deg, rgba(26,21,40,.94), rgba(14,12,20,.94));
+    border: 1px solid rgba(167,139,250,.24);
+    box-shadow: 0 16px 40px rgba(0,0,0,.55); transform-origin: 50% 50%; backface-visibility: hidden;
+  }
+  .rule .id { font-family: "Geist Mono", monospace; font-size: 11px; letter-spacing: .14em; color: #a78bfa; }
+  .rule .nm { font-size: 15px; font-weight: 600; margin-top: 5px; }
+  .rule .lv { font-family: "Geist Mono", monospace; font-size: 10px; letter-spacing: .1em; margin-top: 7px; }
+  .rule .glow { position: absolute; inset: -1px; border-radius: 12px; opacity: 0; pointer-events: none;
+    box-shadow: 0 0 0 1.5px #a78bfa, 0 0 44px rgba(167,139,250,.62); }
+
+  /* 状态胶囊（后台时间线） */
+  .pill {
+    position: absolute; left: 0; top: 0; padding: 9px 16px; border-radius: 999px;
+    font-family: "Geist Mono", monospace; font-size: 14px; letter-spacing: .06em;
+    background: rgba(20,17,30,.9); border: 1px solid rgba(242,241,238,.16);
+    color: rgba(242,241,238,.42); transform-origin: 50% 50%; white-space: nowrap;
+  }
+
+  /* 马赛克瓦片（开场标志） */
+  .tile {
+    position: absolute; left: 0; top: 0; width: 104px; height: 104px; border-radius: 16px;
+    display: grid; place-items: center; transform-origin: 50% 50%;
+    box-shadow: 0 18px 44px rgba(0,0,0,.55);
+  }
+  .tile svg { width: 46px; height: 46px; }
+
+  /* =========================================================
+     2D 叠加层
+     ========================================================= */
+  #fx { position: absolute; inset: 0; pointer-events: none; }
+  #particles { position: absolute; inset: 0; }
+  #scrim { position: absolute; inset: 0; opacity: 0;
+    background: linear-gradient(105deg, rgba(6,6,10,.95) 0%, rgba(6,6,10,.82) 22%, rgba(6,6,10,0) 48%),
+                linear-gradient(0deg, rgba(6,6,10,.90) 0%, rgba(6,6,10,0) 32%),
+                linear-gradient(270deg, rgba(6,6,10,.72) 0%, rgba(6,6,10,0) 16%); }
+  #vignette { position: absolute; inset: 0;
+    background: radial-gradient(ellipse 74% 70% at 50% 48%, transparent 40%, rgba(0,0,0,.55) 100%); }
+  #grain { position: absolute; inset: 0; opacity: .05; mix-blend-mode: overlay;
+    background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.6) 0 1px, transparent 1px 3px); }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+  #bars { position: absolute; inset: 0; }
+  #bars .tb { position: absolute; left: 0; right: 0; height: 0; background: #06060a; }
+  #bars .tb.a { top: 0; } #bars .tb.b { bottom: 0; }
+
+  #hud { position: absolute; inset: 0; pointer-events: none; }
+  #hud .corner { position: absolute; font-family: "Geist Mono", monospace; font-size: 13px;
+    letter-spacing: .22em; color: rgba(242,241,238,.30); text-transform: uppercase; }
+  #c-tl { left: 108px; top: 58px; }
+  #c-tr { right: 108px; top: 58px; }
+  #c-bl { left: 108px; bottom: 54px; }
+
+  /* 场景标题块 */
+  #title { position: absolute; left: 108px; bottom: 118px; }
+  #title .num { font-family: "Geist Mono", monospace; font-size: 15px; letter-spacing: .3em; color: #a78bfa; }
+  #title h1 { font-size: 62px; line-height: 1.06; letter-spacing: -.028em; margin-top: 12px; font-weight: 600; }
+  #title .sub { font-size: 19px; color: rgba(242,241,238,.62); margin-top: 12px; max-width: 545px; line-height: 1.58; }
+  #title .rule { position: static; width: 74px; height: 3px; background: #a78bfa; margin-top: 20px; border-radius: 2px;
+    box-shadow: 0 0 20px rgba(167,139,250,.8); }
+
+  /* 右上角指标 */
+  #metrics { position: absolute; right: 108px; top: 104px; text-align: right; }
+  #metrics .m { margin-bottom: 18px; }
+  #metrics .m .k { font-family: "Geist Mono", monospace; font-size: 11px; letter-spacing: .2em;
+    color: rgba(242,241,238,.34); text-transform: uppercase; }
+  #metrics .m .v { font-family: "Geist Mono", monospace; font-size: 40px; font-weight: 600; letter-spacing: -.03em;
+    color: #f2f1ee; line-height: 1.14; }
+
+  /* 桥段：三个动词在 build-up 里逐拍砸入 */
+  #bridge { position: absolute; left: 50%; top: 50%; opacity: 0; }
+  #bridge .bw { position: absolute; left: 0; top: 0; width: 620px; margin-left: -310px; margin-top: -62px;
+    text-align: center; opacity: 0; }
+  #bridge .bw b { display: block; font-size: 84px; font-weight: 800; letter-spacing: -.04em;
+    line-height: 1; color: #f2f1ee; }
+  #bridge .bw span { display: block; font-family: "Geist Mono", monospace; font-size: 15px;
+    letter-spacing: .42em; color: #a78bfa; margin-top: 14px; }
+
+  /* 底部进度条 */
+  #prog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(242,241,238,.09); }
+  #prog > i { display: block; height: 100%; background: linear-gradient(90deg, #6d4ee0, #a78bfa); box-shadow: 0 0 16px rgba(167,139,250,.85); }
+
+  /* 开场标志 */
+  #logo { position: absolute; left: 50%; top: 67%; text-align: center; }
+  #logo .mark { font-size: 96px; font-weight: 800; letter-spacing: -.045em; line-height: 1; }
+  #logo .mark em { font-style: normal; color: #a78bfa; }
+  #logo .cn { font-family: "Geist Mono", monospace; font-size: 22px; letter-spacing: .5em;
+    color: rgba(242,241,238,.5); margin-top: 16px; }
+  #logo .tag { font-size: 27px; color: rgba(242,241,238,.86); margin-top: 30px; letter-spacing: .01em; }
+
+  /* 收尾 */
+  #outro { position: absolute; left: 50%; top: 47%; text-align: center; }
+  #outro .tag { font-size: 54px; letter-spacing: -.02em; line-height: 1.16; }
+  #outro .chips { display: flex; gap: 12px; justify-content: center; margin-top: 42px; }
+  #outro .chips span { font-family: "Geist Mono", monospace; font-size: 14px; letter-spacing: .1em;
+    padding: 10px 20px; border-radius: 999px; border: 1px solid rgba(167,139,250,.42);
+    background: rgba(167,139,250,.10); color: #d9cdfb; }
+  #outro .credit { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .1em;
+    color: rgba(242,241,238,.34); margin-top: 54px; }
+
+  /* 成功勾 */
+  #check { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); opacity: 0; }
+</style>
+</head>
+<body>
+
+<div id="bg">
+  <div id="grid"></div>
+  <div id="floor-glow"></div>
+  <div id="glow"></div>
+</div>
+
+<div id="stage">
+  <div id="world">
+    <!-- 开场马赛克 -->
+    <div class="layer" id="l-intro"></div>
+
+    <!-- 首页 -->
+    <div class="layer" id="l-home">
+      <div class="plane" id="p-home">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / index.html</span></div>
+        <img src="site/home-full.jpg" alt="">
+        <div class="scan"></div>
+      </div>
+    </div>
+
+    <!-- 模块库 -->
+    <div class="layer" id="l-catalog">
+      <div class="plane" id="p-cat-a">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / catalog.html</span></div>
+        <img src="site/catalog-full.jpg" alt="">
+      </div>
+      <div class="plane" id="p-cat-b" style="opacity:0">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / catalog.html?cat=sensor</span></div>
+        <img src="site/catalog-sensor.jpg" alt="">
+        <div class="scan"></div>
+      </div>
+    </div>
+
+    <!-- 工作台 -->
+    <div class="layer" id="l-build">
+      <div class="plane" id="p-bd-a">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / builder.html</span></div>
+        <img src="site/builder-full.jpg" alt="">
+      </div>
+      <div class="plane" id="p-bd-b" style="opacity:0">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / builder.html — 校验通过</span></div>
+        <img src="site/builder-check.jpg" alt="">
+        <div class="scan"></div>
+      </div>
+    </div>
+
+    <!-- 校验规则 -->
+    <div class="layer" id="l-rules">
+      <div class="plane" id="p-rules-core">
+        <div class="bar"><i></i><i></i><i></i><span>compat.engine / 9 rules</span></div>
+        <img src="site/builder-check.jpg" alt="">
+      </div>
+    </div>
+
+    <!-- 下单付款 -->
+    <div class="layer" id="l-order">
+      <div class="plane" id="p-ck">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / checkout.html</span></div>
+        <img src="site/checkout-top.jpg" alt="">
+      </div>
+      <div class="plane" id="p-pay" style="opacity:0">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / pay.html — 微信支付</span></div>
+        <img src="site/pay-qr.jpg" alt="">
+        <div class="scan"></div>
+      </div>
+      <div class="plane" id="p-done" style="opacity:0">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / pay.html — 支付成功</span></div>
+        <img src="site/pay-done.jpg" alt="">
+      </div>
+    </div>
+
+    <!-- 后台 -->
+    <div class="layer" id="l-admin">
+      <div class="plane" id="p-adm">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / admin.html</span></div>
+        <img src="site/admin-dash.jpg" alt="">
+      </div>
+      <div class="plane" id="p-ship" style="opacity:0">
+        <div class="bar"><i></i><i></i><i></i><span>mosaic / admin.html — 发货</span></div>
+        <img src="site/admin-ship.jpg" alt="">
+        <div class="scan"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="fx">
+  <canvas id="particles" width="1920" height="1080"></canvas>
+  <div id="bars"><div class="tb a"></div><div class="tb b"></div></div>
+  <div id="scrim"></div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+  <div id="flash"></div>
+</div>
+
+<div id="hud">
+  <div class="corner" id="c-tl">MOSAIC / 拼造</div>
+  <div class="corner" id="c-tr">HARDWARE COMPOSER</div>
+  <div class="corner" id="c-bl">1920×1080 · 30FPS</div>
+
+  <div id="bridge">
+    <div class="bw" data-i="0"><b>选型</b><span>SELECT</span></div>
+    <div class="bw" data-i="1"><b>校验</b><span>VALIDATE</span></div>
+    <div class="bw" data-i="2"><b>下单</b><span>ORDER</span></div>
+  </div>
+
+  <div id="metrics"></div>
+
+  <div id="title" style="opacity:0">
+    <div class="num" id="t-num"></div>
+    <h1 id="t-h"></h1>
+    <div class="sub" id="t-sub"></div>
+    <div class="rule"></div>
+  </div>
+
+  <div id="logo" style="opacity:0">
+    <div class="mark">MOS<em>A</em>IC</div>
+    <div class="cn">拼 造</div>
+    <div class="tag serif">把模块，拼成你想要的硬件。</div>
+  </div>
+
+  <div id="outro" style="opacity:0">
+    <div class="tag serif" id="o-tag">先验证可行性，<br>再决定要不要花钱。</div>
+    <div class="chips">
+      <span>GitHub Pages</span><span>Vercel</span><span>Cloudflare</span>
+      <span>微信支付</span><span>支付宝</span>
+    </div>
+    <div class="credit" id="o-credit"></div>
+  </div>
+
+  <div id="check"><svg width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10.4"/><path d="M7.6 12.4l3 3 5.8-6.2"/></svg></div>
+
+  <div id="prog"><i></i></div>
+</div>
+
+<script>
+/* =========================================================================
+   MOSAIC 3D 合成舞台
+   全部视觉由单一 render(T) 驱动，不使用任何 CSS 动画 —— 保证逐帧可确定性渲染。
+   时间轴：30 秒 / 120BPM / 每拍 0.5s / 共 60 拍 / 900 帧
+   音乐：Kevin MacLeod "Long Time Coming"（CC BY 4.0），从 track 3.99s 起截取 30s
+         → 视频第 12.00 秒（第 24 拍）正好落在该曲的能量爆发点
+   ========================================================================= */
+const FPS = 30, DUR = 30, NFRAMES = FPS * DUR;
+const BEAT = 0.5, BAR = 2.0;
+const DROP = 12.0;              // 音乐爆发点
+const ACCENT = '#a78bfa', ACCENT2 = '#2d81ff';
+
+/* ---------- 数学与缓动 ---------- */
+const c01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const seg = (t, a, b) => c01((t - a) / (b - a));
+const lerp = (a, b, t) => a + (b - a) * t;
+const eOut = x => 1 - Math.pow(1 - x, 3);
+const eOut4 = x => 1 - Math.pow(1 - x, 4);
+const eOutExpo = x => x >= 1 ? 1 : 1 - Math.pow(2, -11 * x);
+const eInOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eOutBack = x => 1 + 2.2 * Math.pow(x - 1, 3) + 1.4 * Math.pow(x - 1, 2);
+const eIn = x => x * x;
+const beatPulse = t => Math.pow(1 - ((t / BEAT) % 1 + 1) % 1, 7);
+const beatIdx = t => Math.floor(t / BEAT);
+const onBeat = (t, k) => seg(t, k * BEAT, k * BEAT + 0.11);   // 第 k 拍触发、0.11s 完成
+
+/* ---------- DOM 引用 ---------- */
+const $ = s => document.querySelector(s);
+const world = $('#world'), bg = $('#bg'), glow = $('#glow'), flash = $('#flash');
+const titleEl = $('#title'), logoEl = $('#logo'), outroEl = $('#outro'), checkEl = $('#check');
+const metricsEl = $('#metrics');
+const cv = $('#particles'), ctx = cv.getContext('2d');
+
+/* ---------- 平面（屏幕面板）管理 ---------- */
+const PLANES = [];
+function initPlane(el, w, h, imgSel) {
+  const img = el.querySelector(imgSel || 'img');
+  const rec = { el, img, w, h, iw: 0, ih: 0, natW: 0, natH: 0, range: 0, barH: el.querySelector('.bar') ? 26 : 0 };
+  const load = () => {
+    rec.natW = img.naturalWidth; rec.natH = img.naturalHeight;
+    const availH = h - rec.barH;
+    const s = Math.max(w / rec.natW, availH / rec.natH);
+    rec.iw = rec.natW * s; rec.ih = rec.natH * s;
+    rec.range = Math.max(0, rec.ih - availH);
+    img.style.width = rec.iw + 'px';
+    img.style.height = rec.ih + 'px';
+    img.style.top = rec.barH + 'px';
+    rec.ready = true;
+  };
+  if (img.complete && img.naturalWidth) load(); else img.addEventListener('load', load);
+  el.style.width = w + 'px'; el.style.height = h + 'px';
+  PLANES.push(rec);
+  return rec;
+}
+
+/* 设置平面的 3D 变换与平移 */
+function place(rec, o) {
+  const o2 = o || {};
+  const x = o2.x || 0, y = o2.y || 0, z = o2.z || 0;
+  const rx = o2.rx || 0, ry = o2.ry || 0, rz = o2.rz || 0, s = o2.s == null ? 1 : o2.s;
+  rec.el.style.transform = `translate3d(${x}px,${y}px,${z}px) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg) scale(${s})`;
+  rec.el.style.opacity = o2.op == null ? 1 : o2.op;
+  rec.el.style.zIndex = o2.zi == null ? 1 : o2.zi;
+  if (rec.range && o2.pan != null) {
+    const availH = rec.h - rec.barH;
+    rec.img.style.transform = `translateY(${(-o2.pan * rec.range).toFixed(2)}px)`;
+  }
+}
+
+/* 主平面统一向右上偏移，让出左下角标题区，形成稳定版面 */
+const OX = 152, OY = -58;
+function centered(rec, o) {
+  return Object.assign({ x: -rec.w / 2 + OX, y: -rec.h / 2 + OY }, o);
+}
+/* 居中不偏移：用于规则环绕、收尾等对称构图 */
+function centeredMid(rec, o) {
+  return Object.assign({ x: -rec.w / 2, y: -rec.h / 2 }, o);
+}
+
+/* ---------- 各平面实例 ---------- */
+const P = {
+  home: initPlane($('#p-home'), 1112, 700),
+  catA: initPlane($('#p-cat-a'), 1112, 700),
+  catB: initPlane($('#p-cat-b'), 1112, 700),
+  bdA: initPlane($('#p-bd-a'), 1132, 714),
+  bdB: initPlane($('#p-bd-b'), 1132, 714),
+  rules: initPlane($('#p-rules-core'), 792, 498),
+  ck: initPlane($('#p-ck'), 1052, 662),
+  pay: initPlane($('#p-pay'), 1052, 662),
+  done: initPlane($('#p-done'), 1052, 662),
+  adm: initPlane($('#p-adm'), 1122, 706),
+  ship: initPlane($('#p-ship'), 936, 590),
+};
+
+/* ---------- 模块小卡 ---------- */
+const CHIP_DATA = [
+  ['ESP32-S3-DevKitC-1', '主控 · 3.3V', 98.6],
+  ['SHT31 高精度温湿度', 'I2C 0x44', 86.0],
+  ['SGP30 TVOC / eCO₂', 'I2C 0x58', 41.0],
+  ['BH1750 光照传感器', 'I2C 0x23', 57.0],
+  ['0.96" OLED 显示屏', 'I2C 0x3C', 94.0],
+  ['LoRa SX1278 433MHz', 'SPI', 78.0],
+];
+const chips = CHIP_DATA.map(([nm, sub], i) => {
+  const el = document.createElement('div');
+  el.className = 'chip';
+  el.innerHTML = `<span class="dot"></span><span class="nm">${nm}</span><span class="sub">${sub}</span>`;
+  $('#l-build').appendChild(el);
+  return { el, i };
+});
+
+/* ---------- 校验规则卡 ---------- */
+const RULES = [
+  ['R0', '缺少主控', '冲突'], ['R1', '接口数量超限', '冲突'], ['R2', 'GPIO 引脚不足', '冲突'],
+  ['R3', '逻辑电平不匹配', '提醒'], ['R4', 'I2C 地址冲突', '提醒'], ['R5', '供电能力不足', '冲突'],
+  ['R6', '算力档位不足', '冲突'], ['R7', '缺少总线协议', '冲突'], ['R8', '缺少驱动或电源', '提醒'],
+];
+const rules = RULES.map(([id, nm, lv], i) => {
+  const el = document.createElement('div');
+  el.className = 'rule';
+  const color = lv === '冲突' ? '#ff6b60' : '#ffb545';
+  el.innerHTML = `<div class="glow"></div><div class="id">${id}</div><div class="nm">${nm}</div>
+    <div class="lv" style="color:${color}">${lv === '冲突' ? '● 阻断' : '● 提醒'}</div>`;
+  $('#l-rules').appendChild(el);
+  return { el, glow: el.querySelector('.glow'), i };
+});
+
+/* ---------- 开场马赛克瓦片 ---------- */
+const TILE_COLORS = [
+  ['#a78bfa', 'chip'], ['#f2f1ee', 'wave'], ['#2d81ff', 'gear'],
+  ['#f2f1ee', 'signal'], ['#a78bfa', 'screen'], ['#f2f1ee', 'layers'],
+  ['#2d81ff', 'battery'], ['#f2f1ee', 'cube'], ['#a78bfa', 'cpu'],
+];
+const SVG = {
+  chip: 'M7 7h10v10H7zM9 3v2M12 3v2M15 3v2M9 19v2M12 19v2M15 19v2M3 9h2M3 12h2M3 15h2M19 9h2M19 12h2M19 15h2',
+  wave: 'M2 12h3l2-6 3 12 3-9 2 5 2-3h5',
+  gear: 'M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.8-.3 1.6 1.6 0 00-1 1.5v.2a2 2 0 11-4 0v-.1a1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H3a2 2 0 110-4h.1a1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H10a1.6 1.6 0 001-1.5V3a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V10a1.6 1.6 0 001.5 1h.2a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z',
+  signal: 'M4 20V10M9 20V6M14 20V13M19 20V4',
+  screen: 'M3 4h18v12H3zM8 20h8M12 16v4',
+  layers: 'M12 2.8l9 4.6-9 4.6-9-4.6zM3 12l9 4.6 9-4.6M3 16.6l9 4.6 9-4.6',
+  battery: 'M3 8h13a2 2 0 012 2v4a2 2 0 01-2 2H3zM20 11v2M6 11v2M9 11v2',
+  cube: 'M12 2.8l8 4.4v9.6l-8 4.4-8-4.4V7.2zM12 12.4l8-4.4M12 12.4v8.8M12 12.4L4 8',
+  cpu: 'M9 9h6v6H9zM4 4h16v16H4z',
+};
+const tiles = TILE_COLORS.map(([color, ic], i) => {
+  const el = document.createElement('div');
+  el.className = 'tile';
+  const dark = color === '#f2f1ee';
+  el.style.background = dark ? 'linear-gradient(140deg,#faf9f7,#e9e8e4)' : `linear-gradient(140deg,${color},${color}cc)`;
+  el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="${dark ? '#101014' : '#0d0a16'}"
+    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="${SVG[ic]}"/></svg>`;
+  $('#l-intro').appendChild(el);
+  const seed = (i * 2654435761) % 1000 / 1000;
+  return { el, i, seed };
+});
+
+/* ---------- 后台状态胶囊 ---------- */
+const STATES = ['待付款', '已付款', '备货中', '已发货', '已完成'];
+const pills = STATES.map((s, i) => {
+  const el = document.createElement('div');
+  el.className = 'pill'; el.textContent = s;
+  $('#l-admin').appendChild(el);
+  return { el, i };
+});
+
+/* ---------- 粒子 ---------- */
+const parts = Array.from({ length: 150 }, (_, i) => {
+  const r = (i * 9301 + 49297) % 233280 / 233280;
+  const r2 = (i * 4703 + 7919) % 233280 / 233280;
+  return { x: r * 1920, y: r2 * 1080, z: 0.25 + ((i * 1543) % 100) / 100 * 0.75, sp: 0.35 + r2 * 0.9, ph: r * 6.283 };
+});
+
+/* =========================================================================
+   场景渲染
+   ========================================================================= */
+
+/* --- 通用：把「时间轴上的激活区间」算成 0→1 的入场进度 --- */
+function sceneAlpha(T, a, b, fadeIn, fadeOut) {
+  const fi = fadeIn == null ? 0.42 : fadeIn, fo = fadeOut == null ? 0.42 : fadeOut;
+  return Math.min(seg(T, a, a + fi), 1 - seg(T, b - fo, b));
+}
+
+/* ---------- 01 开场：马赛克汇聚 ---------- */
+function sceneIntro(T) {
+  const on = T < 2.35;
+  if (!on) { tiles.forEach(t => t.el.style.opacity = 0); return; }
+  const GAP = 112, SIZE = 104;
+  tiles.forEach((t, i) => {
+    const col = i % 3, row = Math.floor(i / 3);
+    const tx = (col - 1) * GAP - SIZE / 2, ty = (row - 1) * GAP - SIZE / 2;
+    // 每块瓦片错峰入场
+    const st = 0.06 + i * 0.075;
+    const p = eOutBack(seg(T, st, st + 0.42));
+    const fx = (t.seed - 0.5) * 1500, fz = -900 - t.seed * 900;
+    const fy = ((i % 2 ? 1 : -1)) * 700;
+    t.el.style.transform =
+      `translate3d(${lerp(fx, tx, p)}px,${lerp(fy, ty, p)}px,${lerp(fz, 0, p)}px)` +
+      ` rotateX(${lerp(-70, 0, p)}deg) rotateY(${lerp(60, 0, p)}deg) rotateZ(${lerp((t.seed - .5) * 90, 0, p)}deg)`;
+    t.el.style.opacity = c01(seg(T, st, st + 0.16));
+  });
+  // 汇聚完成后整体微缩放 + 呼吸
+  const done = seg(T, 0.78, 1.05);
+  const breathe = 1 + 0.028 * Math.sin((T - 0.78) * 7) * done;
+  const scale = lerp(1, 1.14, eOut(seg(T, 1.55, 2.3))) * breathe;
+  const tilt = lerp(0, 26, eInOut(seg(T, 1.5, 2.35)));
+  const zz = lerp(0, 900, eIn(seg(T, 1.5, 2.35)));
+  // 停留期保留基础倾角，退场时向镜头甩出
+  const baseRX = lerp(10, -tilt * 0.5, eInOut(seg(T, 1.45, 2.35)));
+  const baseRY = lerp(-15, tilt, eInOut(seg(T, 1.45, 2.35)));
+  $('#l-intro').style.transform =
+    `translate3d(0,-124px,0) rotateX(${baseRX}deg) rotateY(${baseRY}deg) scale(${scale}) translateZ(${zz}px)`;
+  $('#l-intro').style.opacity = 1 - seg(T, 2.15, 2.4);
+}
+
+/* ---------- 02 首页 ---------- */
+function sceneHome(T) {
+  const A = 2.0, B = 6.4;
+  const on = sceneAlpha(T, A, B);
+  if (on <= 0) { place(P.home, { op: 0 }); return; }
+  const p = eOutExpo(seg(T, A + 0.02, A + 0.85));
+  place(P.home, centered(P.home, {
+    x: lerp(-620, -P.home.w / 2 + OX, p) + Math.sin(T * 0.5) * 9,
+    y: lerp(-330, -P.home.h / 2 + OY, p) + Math.cos(T * 0.42) * 7,
+    z: lerp(-1500, 0, p),
+    ry: lerp(30, -8, eOut(seg(T, A, A + 1.1))) + Math.sin(T * 0.36) * 1.9,
+    rx: lerp(-12, 3, eOut(seg(T, A, A + 1.1))) + Math.cos(T * 0.3) * 1.4,
+    s: lerp(1.22, 1, eOut(seg(T, A, A + 1.0))),
+    pan: eInOut(seg(T, A + 0.6, B - 0.3)) * 0.66,
+    op: on,
+  }));
+}
+
+/* ---------- 03 模块库 ---------- */
+function sceneCatalog(T) {
+  const A = 6.0, B = 10.4, SWAP = 8.1;
+  const on = sceneAlpha(T, A, B);
+  if (on <= 0) { place(P.catA, { op: 0 }); place(P.catB, { op: 0 }); return; }
+  const p = eOutExpo(seg(T, A + 0.02, A + 0.8));
+  const drift = (T - A) * 0.9;
+  const base = {
+    x: lerp(760, -P.catA.w / 2 + OX, p) + Math.sin(T * 0.44) * 10,
+    y: -P.catA.h / 2 + OY + Math.cos(T * 0.38) * 8,
+    z: lerp(-1100, 0, p),
+    ry: lerp(-52, 9, eOut(seg(T, A, A + 1.0))) + Math.sin(T * 0.34) * 2.2,
+    rx: lerp(10, -3, eOut(seg(T, A, A + 1.0))) + Math.cos(T * 0.29) * 1.5,
+    s: lerp(1.16, 1, eOut(seg(T, A, A + 0.95))),
+    op: on,
+  };
+  // 切换筛选结果的瞬间做一个「闪白 + 位移」
+  const swap = seg(T, SWAP, SWAP + 0.30);
+  place(P.catA, centered(P.catA, Object.assign({}, base, {
+    pan: eInOut(seg(T, A + 0.5, B - 0.3)) * 0.55,
+    x: base.x - swap * 190, op: on * (1 - swap),
+  })));
+  place(P.catB, centered(P.catB, Object.assign({}, base, {
+    pan: eInOut(seg(T, SWAP + 0.15, B - 0.3)) * 0.62,
+    x: base.x + (1 - swap) * 230,
+    z: base.z - (1 - swap) * 320,
+    op: on * swap,
+  })));
+  if (T > SWAP && T < SWAP + 0.26) glowFlash(0.34 * (1 - seg(T, SWAP, SWAP + 0.26)), ACCENT2);
+}
+
+/* ---------- 03b 桥段：build-up 里三个动词逐拍砸入，为 DROP 蓄势 ---------- */
+const BWORDS = Array.from(document.querySelectorAll('#bridge .bw'));
+function sceneBridge(T) {
+  const A = 10.34, B = 12.06;
+  const on = T >= A && T < B;
+  const host = document.getElementById('bridge');
+  if (!on) { host.style.opacity = 0; BWORDS.forEach(b => { b.style.opacity = 0; }); return; }
+  host.style.opacity = 1;
+  const blast = seg(T, 11.82, 12.06);          // 收尾：三词向外炸开
+  BWORDS.forEach((b, i) => {
+    const k = 21 + i;                          // 第 21 / 22 / 23 拍
+    const t0 = k * BEAT;
+    const p = eOutBack(seg(T, t0, t0 + 0.34));
+    const lit = beatPulse(t0);
+    const y = -150 + i * 150;
+    b.style.opacity = c01(seg(T, t0, t0 + 0.10)) * (1 - blast);
+    b.style.transform =
+      `translate3d(${lerp(0, (i - 1) * 460, blast)}px,${lerp(y + 90, y, p)}px,${lerp(-420, 0, p) + blast * 620}px)` +
+      ` rotateX(${lerp(-72, 0, p)}deg) scale(${lerp(1.7, 1, p) * lerp(1, 1.5, blast)})`;
+    b.querySelector('b').style.textShadow = `0 0 ${18 + 34 * lit}px rgba(167,139,250,${.35 + .5 * lit})`;
+  });
+  // 每拍一次轻闪，第 23 拍最亮，衔接 DROP
+  const kk = beatIdx(T);
+  if (kk >= 21 && kk <= 23) glowFlash(0.10 + (kk - 21) * 0.07, ACCENT);
+}
+
+/* ---------- 04 工作台（DROP 之后的核心里程碑） ---------- */
+function sceneBuild(T) {
+  const A = 11.86, B = 17.4, SWAP = 15.05;   // 比 DROP 提前 0.14s，保证第 24 拍画面已就位
+  const on = sceneAlpha(T, A, B, 0.13, 0.42);   // 入场只留 0.13s，形成硬切冲击
+  if (on <= 0) {
+    place(P.bdA, { op: 0 }); place(P.bdB, { op: 0 });
+    chips.forEach(c => c.el.style.opacity = 0);
+    return;
+  }
+  // DROP 冲击：从极近处砸入 + 过冲
+  const p = eOutExpo(seg(T, A + 0.02, A + 0.62));
+  const over = 1 + 0.055 * Math.pow(1 - seg(T, A, A + 0.9), 2) * Math.cos((T - A) * 22);
+  const beat = beatPulse(T);
+  const base = {
+    x: -P.bdA.w / 2 + OX + Math.sin(T * 0.5) * 8,
+    y: -P.bdA.h / 2 + OY + Math.cos(T * 0.41) * 6,
+    z: lerp(-1700, 0, p),
+    ry: lerp(20, -6, eOut(seg(T, A, A + 0.9))) + Math.sin(T * 0.33) * 1.7,
+    rx: lerp(-16, 4, eOut(seg(T, A, A + 0.9))) + Math.cos(T * 0.27) * 1.2,
+    s: lerp(1.3, 1, eOut(seg(T, A, A + 0.85))) * over,
+    op: on,
+  };
+  const swap = seg(T, SWAP, SWAP + 0.30);
+  place(P.bdA, centered(P.bdA, Object.assign({}, base, {
+    pan: eInOut(seg(T, A + 0.4, B - 0.3)) * 0.42,
+    x: base.x - swap * 170, op: on * (1 - swap),
+  })));
+  place(P.bdB, centered(P.bdB, Object.assign({}, base, {
+    pan: eInOut(seg(T, SWAP + 0.15, B - 0.3)) * 0.70,
+    x: base.x + (1 - swap) * 210,
+    z: base.z - (1 - swap) * 260,
+    op: on * swap,
+  })));
+  if (T > SWAP && T < SWAP + 0.3) glowFlash(0.4 * (1 - seg(T, SWAP, SWAP + 0.3)), '#4ade80');
+
+  // 模块小卡：第 24.5 拍起，每 1.5 拍落一张
+  chips.forEach(c => {
+    const t0 = 12.34 + c.i * 0.70;
+    const k = eOutBack(seg(T, t0, t0 + 0.5));
+    const stackX = -838 + c.i * 5;
+    const stackY = -234 + c.i * 55;
+    const fx = 780 + (c.i % 3) * 90, fy = -300 + c.i * 130, fz = -520;
+    const fade = seg(T, 16.35, 16.9);
+    c.el.style.transform =
+      `translate3d(${lerp(fx, stackX, k)}px,${lerp(fy, stackY, k)}px,${lerp(fz, 150, k)}px)` +
+      ` rotateY(${lerp(-42, 0, k)}deg) rotateX(${lerp(16, 0, k)}deg) scale(${lerp(0.82, 1, k)})`;
+    c.el.style.opacity = c01(seg(T, t0, t0 + 0.22)) * (1 - fade);
+    const lit = onBeat(T, beatIdx(t0 / BEAT) + 1);
+    c.el.style.boxShadow = `0 14px 34px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07), 0 0 ${16 + 30 * lit}px rgba(167,139,250,${.30 + .45 * lit})`;
+  });
+}
+
+/* ---------- 05 校验规则 ---------- */
+function sceneRules(T) {
+  const A = 17.0, B = 21.3;
+  const on = sceneAlpha(T, A, B);
+  if (on <= 0) { place(P.rules, { op: 0 }); rules.forEach(r => r.el.style.opacity = 0); return; }
+  const p = eOutExpo(seg(T, A + 0.02, A + 0.8));
+  const spin = (T - A) * 9.5;                // 环形缓慢自转
+  // 底板推远并压暗，让规则卡成为视觉主体
+  P.rules.el.style.filter = 'brightness(.40) saturate(.5) blur(3.5px)';
+  place(P.rules, centeredMid(P.rules, {
+    x: Math.sin(T * 0.4) * 8, y: -P.rules.h / 2 + Math.cos(T * 0.34) * 6,
+    z: lerp(-1500, -700, p), ry: Math.sin(T * 0.3) * 3.4, rx: 4 + Math.cos(T * 0.25) * 2,
+    s: lerp(1.12, 1, p), op: on * 0.62,
+  }));
+  const R = 556, YR = -30;
+  rules.forEach((r, i) => {
+    const ang = (i / rules.length) * 360 + spin;
+    const rad = ang * Math.PI / 180;
+    const x = Math.sin(rad) * R;
+    const z = Math.cos(rad) * R;
+    const depth = (z + R) / (2 * R);                    // 0 远 → 1 近
+    const lit = onBeat(T, 34 + i);                      // 逐条点亮
+    const sc = (0.68 + depth * 0.34) * lerp(1, 1.10, lit);
+    // 角度归一化到 -180..180 再乘系数，保证 |rotateY| < 90°，卡片永远不会翻面导致文字镜像
+    const a2 = ((ang % 360) + 540) % 360 - 180;
+    r.el.style.transform =
+      `translate3d(${x - 116}px,${YR + Math.sin(rad * 2) * 26 - 42}px,${z}px)` +
+      ` rotateY(${(-a2 * 0.46).toFixed(2)}deg) scale(${sc})`;
+    r.el.style.opacity = on * (0.44 + depth * 0.56);
+    r.glow.style.opacity = lit * 0.95;
+    r.el.style.borderColor = lit > .3 ? 'rgba(167,139,250,.9)' : 'rgba(167,139,250,.20)';
+    r.el.style.background = lit > .3
+      ? 'linear-gradient(150deg, rgba(52,38,86,.97), rgba(20,15,32,.97))'
+      : 'linear-gradient(150deg, rgba(26,21,40,.90), rgba(14,12,20,.90))';
+  });
+  if (T < A + 0.35) glowFlash(0.3 * (1 - seg(T, A, A + 0.35)), ACCENT);
+}
+
+/* ---------- 06 下单付款 ---------- */
+function sceneOrder(T) {
+  const A = 21.0, B = 25.3;
+  const F1 = 22.55, F2 = 23.75;      // 结算→支付→成功 的两次翻转
+  const on = sceneAlpha(T, A, B);
+  if (on <= 0) { place(P.ck, { op: 0 }); place(P.pay, { op: 0 }); place(P.done, { op: 0 }); return; }
+  const p = eOutExpo(seg(T, A + 0.02, A + 0.7));
+  const cx = -P.ck.w / 2 + OX + Math.sin(T * 0.46) * 9;
+  const cy = -P.ck.h / 2 + OY + Math.cos(T * 0.39) * 7;
+  const camZ = lerp(-1200, 0, p);
+  const s0 = lerp(1.14, 1, p);
+
+  const f1 = seg(T, F1, F1 + 0.30), f2 = seg(T, F2, F2 + 0.30);
+  // 结算页
+  place(P.ck, centered(P.ck, {
+    x: cx - f1 * 220, y: cy, z: camZ - f1 * 260, ry: 4 + Math.sin(T * 0.32) * 2 + f1 * 58,
+    rx: 2, s: s0 * (1 - f1 * 0.08), pan: eInOut(seg(T, A + 0.5, B - 0.3)) * 0.5,
+    op: on * (1 - f1),
+  }));
+  // 支付页（翻入）
+  const in1 = f1 * (1 - f2);
+  place(P.pay, centered(P.pay, {
+    x: cx + (1 - f1) * 260, y: cy, z: camZ - (1 - f1) * 320 - f2 * 240,
+    ry: -58 * (1 - f1) + f2 * 58, rx: 2, s: s0 * (1 - Math.abs(0.5 - f1) * 0.1),
+    op: on * in1,
+  }));
+  // 成功页（再翻入）
+  place(P.done, centered(P.done, {
+    x: cx + (1 - f2) * 260, y: cy, z: camZ - (1 - f2) * 320,
+    ry: -58 * (1 - f2), rx: 2, s: s0, op: on * f2,
+  }));
+  // 二维码扫描线
+  const scanEl = $('#p-pay .scan');
+  if (T > F1 + 0.2 && T < F2 + 0.1) {
+    const sp = ((T - F1 - 0.2) / 1.0) % 1;
+    scanEl.style.opacity = 0.95 * (1 - seg(T, F2 - 0.15, F2 + 0.1));
+    scanEl.style.top = (70 + sp * 520) + 'px';
+  } else scanEl.style.opacity = 0;
+
+  if (T > F1 && T < F1 + 0.28) glowFlash(0.30 * (1 - seg(T, F1, F1 + 0.28)), ACCENT);
+  if (T > F2 && T < F2 + 0.5) glowFlash(0.34 * (1 - seg(T, F2, F2 + 0.5)), '#4ade80');
+
+  // 支付成功勾
+  const ck = eOutBack(seg(T, F2 + 0.10, F2 + 0.52));
+  checkEl.style.opacity = ck * on;
+  checkEl.style.transform = `translate(-50%,-50%) scale(${lerp(0.4, 1, ck)})`;
+}
+
+/* ---------- 07 后台处理 ---------- */
+function sceneAdmin(T) {
+  const A = 25.0, B = 28.4, MODAL = 26.85;
+  const on = sceneAlpha(T, A, B);
+  if (on <= 0) { place(P.adm, { op: 0 }); place(P.ship, { op: 0 }); pills.forEach(p => p.el.style.opacity = 0); return; }
+  const p = eOutExpo(seg(T, A + 0.02, A + 0.7));
+  const m = eOutBack(seg(T, MODAL, MODAL + 0.5));
+  const cy = -P.adm.h / 2 + OY + Math.cos(T * 0.4) * 6;
+  place(P.adm, centered(P.adm, {
+    x: -P.adm.w / 2 + OX + Math.sin(T * 0.45) * 8 - m * 90,
+    y: cy, z: lerp(-1300, 0, p) - m * 200,
+    ry: lerp(-14, 5, p) + Math.sin(T * 0.3) * 1.8 + m * 10,
+    rx: 3, s: lerp(1.12, 1, p), op: on * (1 - m * 0.55),
+  }));
+  place(P.ship, centered(P.ship, {
+    x: -P.ship.w / 2 + OX + m * 40, y: -P.ship.h / 2 + OY + 30 - m * 24,
+    z: 240 + m * 340, ry: lerp(24, 0, m), rx: lerp(-12, 0, m),
+    s: lerp(0.86, 1.06, m), op: on * m,
+  }));
+  // 状态胶囊：沿一条弧线排布并逐拍点亮
+  const N = pills.length;
+  pills.forEach((pl, i) => {
+    const ang = -42 + (i / (N - 1)) * 84;
+    const rad = ang * Math.PI / 180;
+    const lit = onBeat(T, 50 + i);
+    const x = 372 + Math.sin(rad) * 392;
+    const y = 352 + (1 - Math.cos(rad)) * 44;
+    const sc = lerp(1, 1.16, lit);
+    pl.el.style.transform =
+      `translate3d(${x - 58}px,${y}px,${220 + Math.cos(rad) * 90}px) rotateY(${-ang * 0.5}deg) scale(${sc})`;
+    pl.el.style.opacity = on * (0.36 + 0.64 * lit);
+    pl.el.style.borderColor = lit > .35 ? 'rgba(167,139,250,.9)' : 'rgba(242,241,238,.16)';
+    pl.el.style.color = lit > .35 ? '#f2f1ee' : 'rgba(242,241,238,.42)';
+    pl.el.style.boxShadow = lit > .35 ? '0 0 30px rgba(167,139,250,.55)' : 'none';
+  });
+  if (T > MODAL && T < MODAL + 0.3) glowFlash(0.26 * (1 - seg(T, MODAL, MODAL + 0.3)), ACCENT);
+}
+
+/* ---------- 08 收尾 ---------- */
+function sceneOutro(T) {
+  const A = 28.0;
+  const p = eOutExpo(seg(T, A, A + 0.7));
+  const out = seg(T, 29.42, 30.0);
+  const el = outroEl;
+  el.style.opacity = p * (1 - out);
+  el.style.transform = `translate(-50%,-50%) scale(${lerp(1.08, 1, p)}) translateY(${lerp(26, 0, p) - out * 30}px)`;
+  $('#o-credit').textContent = 'BGM: Kevin MacLeod — "Long Time Coming" (incompetech.com) · CC BY 4.0';
+  // 收尾时的背景辉光收束
+  glow.style.opacity = 0.9 * p * (1 - out);
+}
+
+/* ---------- 标题 HUD ---------- */
+const TITLES = [
+  { a: 2.30, b: 6.20, num: '01 / MODULE LIBRARY', h: '86 个模块<br>8 大分类', sub: '开发板、传感器、电机、电源、通信、显示与结构件，全部带接口与供电标注。' },
+  { a: 6.30, b: 10.20, num: '02 / FILTER', h: '按接口、电压、价格<br>收敛候选集', sub: '关键词、总线类型、供电电压、价格上限与库存状态可任意组合筛选。' },
+  { a: 12.10, b: 17.20, num: '03 / COMPOSER', h: '加购即校验<br>把买错成本降到零', sub: '工作台实时输出引脚占用、功耗预算、成本明细与冲突报告。' },
+  { a: 17.30, b: 21.10, num: '04 / ENGINE', h: '9 条兼容性规则<br>逐条判定', sub: '总线数量 · IO 占用 · 逻辑电平 · I2C 地址 · 供电 · 算力 · 协议 · 驱动 · 外接电源。' },
+  { a: 21.20, b: 25.10, num: '05 / CHECKOUT', h: '下单、扫码、回调<br>全链路打通', sub: '微信支付与支付宝双通道已预留，服务端验签后置状态并原子扣减库存。' },
+  { a: 25.20, b: 28.30, num: '06 / FULFILLMENT', h: '备货、发货、完成<br>状态实时同步', sub: '后台订单看板、快递单号录入、退款回滚库存与 CSV 导出。' },
+];
+function renderTitle(T) {
+  const cur = TITLES.find(t => T >= t.a && T < t.b);
+  if (!cur) { titleEl.style.opacity = 0; $('#scrim').style.opacity = 0; return; }
+  const key = cur.num;
+  if (titleEl.dataset.k !== key) {
+    titleEl.dataset.k = key;
+    $('#t-num').textContent = cur.num;
+    $('#t-h').innerHTML = cur.h;
+    $('#t-sub').textContent = cur.sub;
+  }
+  const p = eOutExpo(seg(T, cur.a, cur.a + 0.62));
+  const o = 1 - seg(T, cur.b - 0.34, cur.b);
+  titleEl.style.opacity = p * o;
+  $('#scrim').style.opacity = p * o * 0.94;
+  titleEl.style.transform = `translate3d(${lerp(-52, 0, p)}px,0,0)`;
+}
+
+/* ---------- 右上角指标 ---------- */
+const METRICS = [
+  { a: 2.35, b: 6.2, items: [['在售模块', '86'], ['兼容性规则', '9']] },
+  { a: 6.3, b: 10.2, items: [['命中结果', '20'], ['筛选维度', '6']] },
+  { a: 12.1, b: 17.2, items: [['引脚占用', '11 / 45'], ['方案总价', '¥362.00']] },
+  { a: 17.3, b: 21.1, items: [['规则', '9'], ['冲突', '0']] },
+  { a: 21.2, b: 25.1, items: [['应付', '¥362.00'], ['支付', '微信']] },
+  { a: 25.2, b: 28.3, items: [['成交', '¥362.00'], ['状态', '已发货']] },
+];
+function renderMetrics(T) {
+  const cur = METRICS.find(m => T >= m.a && T < m.b);
+  if (!cur) { metricsEl.style.opacity = 0; metricsEl.dataset.k = ''; return; }
+  const key = cur.a + '';
+  if (metricsEl.dataset.k !== key) {
+    metricsEl.dataset.k = key;
+    metricsEl.innerHTML = cur.items.map(([k, v], i) =>
+      `<div class="m"><div class="k">${k}</div><div class="v" data-i="${i}">${v}</div></div>`).join('');
+  }
+  const p = eOutExpo(seg(T, cur.a + 0.1, cur.a + 0.7));
+  metricsEl.style.opacity = p * (1 - seg(T, cur.b - 0.34, cur.b));
+  metricsEl.style.transform = `translate3d(${lerp(40, 0, p)}px,0,0)`;
+  metricsEl.querySelectorAll('.v').forEach((v, i) => {
+    const lit = beatPulse(T - i * 0.25);
+    v.style.color = `rgba(${lerp(242, 167, lit * 0.8)},${lerp(241, 139, lit * 0.8)},${lerp(238, 250, lit * 0.8)},1)`;
+    v.style.textShadow = lit > .3 ? `0 0 ${26 * lit}px rgba(167,139,250,${.8 * lit})` : 'none';
+  });
+}
+
+/* ---------- 闪光与辉光 ---------- */
+let flashColor = ACCENT;
+function glowFlash(a, color) { flashColor = color || ACCENT; flash.style.background = flashColor; flash.style.opacity = a; }
+function renderBg(T) {
+  const beat = beatPulse(T);
+  const drop = seg(T, DROP, DROP + 0.25);
+  // 背景辉光随拍点呼吸；DROP 后整体提亮
+  const base = 0.16 + beat * 0.20 + drop * 0.30;
+  glow.style.opacity = base;
+  glow.style.background =
+    `radial-gradient(ellipse 56% 52% at 50% 48%, rgba(167,139,250,${0.26 + beat * 0.16}), transparent 66%),` +
+    `radial-gradient(ellipse 40% 40% at 22% 78%, rgba(45,129,255,${0.10 + beat * 0.06}), transparent 70%)`;
+  // 网格随拍点轻微推进
+  const g = $('#grid');
+  g.style.backgroundPosition = `${(T * 12) % 90}px ${(T * 5) % 90}px`;
+  g.style.opacity = 0.55 + beat * 0.35;
+  // 开场与收尾的上下黑边
+  const inA = seg(T, 0.0, 0.55), inB = seg(T, 2.15, 2.6);
+  const outA = seg(T, 29.35, 30.0);
+  const barH = Math.max(0, lerp(150, 0, inA)) * (1 - inB) + outA * 196;
+  $('#bars .a').style.height = barH + 'px';
+  $('#bars .b').style.height = barH + 'px';
+  // 收尾整体压暗
+  $('#vignette').style.opacity = 1 + outA * 1.2;
+}
+
+/* ---------- 粒子 ---------- */
+function renderParticles(T) {
+  ctx.clearRect(0, 0, 1920, 1080);
+  const beat = beatPulse(T);
+  const drop = seg(T, DROP, DROP + 0.3);
+  for (const p of parts) {
+    const y = (p.y - T * p.sp * 46 * p.z) % 1180;
+    const yy = y < -60 ? y + 1180 : y;
+    const x = p.x + Math.sin(T * 0.5 + p.ph) * 34 * p.z;
+    const r = 1.0 + p.z * 2.5;
+    const a = (0.10 + p.z * 0.34) * (0.6 + beat * 0.6) * (0.7 + drop * 0.6);
+    ctx.beginPath();
+    ctx.arc(x, yy, r, 0, 6.2832);
+    ctx.fillStyle = p.z > 0.72 ? `rgba(167,139,250,${a})` : `rgba(242,241,238,${a * 0.75})`;
+    ctx.fill();
+  }
+  // DROP 冲击波
+  if (T > DROP && T < DROP + 1.1) {
+    const k = (T - DROP) / 1.1;
+    ctx.beginPath();
+    ctx.arc(960, 540, 120 + k * 1150, 0, 6.2832);
+    ctx.strokeStyle = `rgba(167,139,250,${0.42 * (1 - k)})`;
+    ctx.lineWidth = 8 * (1 - k) + 1;
+    ctx.stroke();
+  }
+  // 支付成功的光环
+  if (T > 23.85 && T < 24.9) {
+    const k = (T - 23.85) / 1.05;
+    ctx.beginPath();
+    ctx.arc(960, 540, 90 + k * 640, 0, 6.2832);
+    ctx.strokeStyle = `rgba(74,222,128,${0.36 * (1 - k)})`;
+    ctx.lineWidth = 6 * (1 - k) + 1;
+    ctx.stroke();
+  }
+}
+
+/* ---------- 进度条与角标 ---------- */
+function renderChrome(T) {
+  $('#prog > i').style.width = (T / DUR * 100).toFixed(2) + '%';
+  const beat = beatIdx(T);
+  $('#c-tl').style.color = `rgba(242,241,238,${0.22 + beatPulse(T) * 0.5})`;
+  $('#c-tr').style.opacity = 0.55 + beatPulse(T) * 0.45;
+  const out = seg(T, 29.2, 30.0);
+  $('#c-tl').style.opacity = $('#c-tr').style.opacity = $('#c-bl').style.opacity = 1 - out;
+  // 开场标志
+  const lp = seg(T, 0.86, 1.5), lo = 1 - seg(T, 2.0, 2.34);
+  logoEl.style.opacity = eOut(lp) * lo;
+  logoEl.style.transform = `translate(-50%,-50%) scale(${lerp(0.9, 1, eOut(lp))}) translateY(${lerp(22, 0, eOut(lp))}px)`;
+}
+
+/* =========================================================================
+   主渲染
+   ========================================================================= */
+function render(T) {
+  flash.style.opacity = 0;
+  renderBg(T);
+  sceneIntro(T);
+  sceneHome(T);
+  sceneCatalog(T);
+  sceneBridge(T);
+  sceneBuild(T);
+  sceneRules(T);
+  sceneOrder(T);
+  sceneAdmin(T);
+  sceneOutro(T);
+  renderTitle(T);
+  renderMetrics(T);
+  renderParticles(T);
+  renderChrome(T);
+  // 全局相机：轻微推拉与呼吸
+  const drop = seg(T, DROP, DROP + 0.2);
+  const camZ = 46 * Math.sin(T * 0.22) + drop * 26 * (1 - seg(T, DROP, DROP + 2.5));
+  const camY = 20 * Math.cos(T * 0.17);
+  const camRZ = 0.5 * Math.sin(T * 0.19);
+  world.style.transform = `translate3d(0px,${camY}px,${camZ}px) rotateZ(${camRZ}deg)`;
+  // 每帧收尾：未激活的场景层整体隐藏，避免残留
+  if (T > 2.45) $('#l-intro').style.opacity = 0;
+  if (T < 2.0 || T > 6.45) { place(P.home, { op: 0 }); }
+  if (T < 6.0 || T > 10.45) { place(P.catA, { op: 0 }); place(P.catB, { op: 0 }); }
+  if (T < 11.86 || T > 17.45) { place(P.bdA, { op: 0 }); place(P.bdB, { op: 0 }); chips.forEach(c => c.el.style.opacity = 0); }
+  if (T < 17.0 || T > 21.35) { place(P.rules, { op: 0 }); rules.forEach(r => r.el.style.opacity = 0); }
+  if (T < 21.0 || T > 25.35) { place(P.ck, { op: 0 }); place(P.pay, { op: 0 }); place(P.done, { op: 0 }); checkEl.style.opacity = 0; }
+  if (T < 25.0 || T > 28.45) { place(P.adm, { op: 0 }); place(P.ship, { op: 0 }); pills.forEach(p => p.el.style.opacity = 0); }
+  if (T < 28.0) outroEl.style.opacity = 0;
+}
+
+/* ---------- 对外接口 ---------- */
+window.seek = function (frame) {
+  const f = Math.max(0, Math.min(NFRAMES - 1, frame | 0));
+  render(f / FPS);
+  return f / FPS;
+};
+window.VIDEO = { FPS, DUR, NFRAMES, BEAT, DROP };
+
+/* ---------- 就绪门 ---------- */
+const imgs = Array.from(document.images);
+Promise.all([
+  Promise.all(imgs.map(im => im.complete ? 0 : new Promise(r => { im.onload = r; im.onerror = r; }))),
+  document.fonts ? document.fonts.ready : Promise.resolve(),
+]).then(() => {
+  PLANES.forEach(r => { if (!r.ready) { r.natW = r.img.naturalWidth || 1; r.natH = r.img.naturalHeight || 1; } });
+  render(0);
+  window.__ready = true;
+});
+</script>
+</body>
+</html>

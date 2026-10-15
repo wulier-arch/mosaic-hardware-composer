@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>需求说明书 · MOSAIC 拼造</title>
+<meta name="description" content="硬件定制平台的核心功能模块、目标用户画像、完整使用流程、页面结构、交互方式与响应式设计要求。">
+<meta name="theme-color" content="#f2f1ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23101014'/%3E%3Crect x='4' y='4' width='7' height='7' rx='1.5' fill='%23a78bfa'/%3E%3Crect x='13' y='13' width='7' height='7' rx='1.5' fill='%232d81ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif&family=Geist+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/main.css">
+<style>
+  .doc-layout { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 44px; align-items: start; }
+  .toc { position: sticky; top: calc(var(--nav-h) + 20px); }
+  .toc-list { display: flex; flex-direction: column; gap: 1px; border-left: 1px solid var(--line); }
+  .toc-list a {
+    font-size: .82rem; color: var(--muted); padding: 6px 0 6px 14px;
+    border-left: 2px solid transparent; margin-left: -1px; transition: .16s var(--ease);
+  }
+  .toc-list a:hover { color: var(--ink); }
+  .toc-list a.on { color: var(--accent-ink); border-left-color: var(--accent); font-weight: 600; }
+  .doc h2 { font-size: clamp(1.35rem, 2.6vw, 1.85rem); margin: 0 0 6px; scroll-margin-top: calc(var(--nav-h) + 24px); }
+  .doc h3 { font-size: 1.02rem; margin: 30px 0 12px; }
+  .doc h4 { font-size: .92rem; margin: 22px 0 9px; font-family: var(--font-mono); letter-spacing: .04em; color: var(--accent-ink); text-transform: uppercase; }
+  .doc p, .doc li { font-size: .91rem; line-height: 1.78; color: var(--muted); }
+  .doc strong, .doc b { color: var(--ink); }
+  .doc section { padding-bottom: 42px; margin-bottom: 42px; border-bottom: 1px solid var(--line); }
+  .doc section:last-child { border-bottom: 0; }
+  .doc ul, .doc ol { padding-left: 20px; margin: 10px 0; }
+  .doc li { margin-bottom: 6px; }
+  .doc code { background: var(--bg-sunken); padding: 2px 6px; border-radius: 4px; font-size: .84em; color: var(--accent-deep); }
+  .doc pre {
+    background: var(--invert-bg); color: var(--invert-fg); padding: 16px 18px; border-radius: var(--radius-lg);
+    overflow-x: auto; font-size: .78rem; line-height: 1.7; margin: 14px 0;
+  }
+  .doc pre code { background: transparent; color: inherit; padding: 0; }
+  .doc table { width: 100%; border-collapse: collapse; font-size: .84rem; margin: 14px 0; }
+  .doc table th {
+    text-align: left; font-family: var(--font-mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--faint); font-weight: 500; padding: 10px 12px; background: var(--bg-sunken);
+    border-bottom: 1px solid var(--line-mid); white-space: nowrap;
+  }
+  .doc table td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--muted); line-height: 1.65; }
+  .doc table td b, .doc table td strong { color: var(--ink); }
+  .doc table tr:last-child td { border-bottom: 0; }
+  .doc .tbl-wrap { border: 1px solid var(--line); border-radius: var(--radius-lg); overflow-x: auto; background: var(--bg-raised); }
+  .doc .tbl-wrap table { margin: 0; min-width: 560px; }
+  .doc .tbl-wrap table th { background: transparent; }
+  .doc .tbl-wrap table td, .doc .tbl-wrap table th { padding-left: 16px; padding-right: 16px; }
+  .note {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: 13px 16px; border-radius: 0 var(--radius) var(--radius) 0; margin: 16px 0;
+  }
+  .note p { margin: 0; font-size: .86rem; color: var(--ink); }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  @media (max-width: 1000px) {
+    .doc-layout { grid-template-columns: 1fr; gap: 24px; }
+    .toc { position: static; }
+    .toc-list { flex-direction: row; flex-wrap: wrap; border-left: 0; gap: 6px; }
+    .toc-list a { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 5px 10px; margin: 0; }
+    .toc-list a.on { border-color: var(--accent); }
+  }
+</style>
+</head>
+<body>
+<div id="navHost"></div>
+
+<header class="page-head">
+  <div class="wrap">
+    <div class="crumb"><a href="index.html">首页</a><span>/</span>需求说明书</div>
+    <div class="spread" style="align-items:flex-end;flex-wrap:wrap;gap:18px">
+      <div>
+        <span class="sec-kicker">Product specification · v1.0.0</span>
+        <h1 class="serif" style="font-size:clamp(1.7rem,3.6vw,2.6rem)">硬件定制平台需求说明书</h1>
+        <p class="sec-lead mt-8" style="max-width:64ch">
+          本文档定义平台的核心功能模块、目标用户画像、完整使用流程、各页面结构与交互方式、
+          响应式设计要求、数据模型、兼容性校验规则、支付接入方案与部署方式。
+        </p>
+      </div>
+      <button class="btn btn-ghost btn-sm no-print" onclick="window.print()"><span data-ico="download" data-size="14"></span> 打印 / 导出 PDF</button>
+    </div>
+  </div>
+</header>
+
+<main class="section" style="padding-top:36px">
+  <div class="wrap doc-layout">
+    <nav class="toc no-print" aria-label="目录">
+      <span class="card-meta" style="display:block;margin-bottom:12px">目录</span>
+      <div class="toc-list" id="toc"></div>
+    </nav>
+
+    <article class="doc" id="doc">
+
+      <section id="overview">
+        <span class="sec-kicker">01 / Overview</span>
+        <h2>项目概述与设计语言</h2>
+        <p>
+          <b>MOSAIC 拼造</b> 是一个在线硬件定制平台。用户从结构化的模块库中挑选开发板、传感器、电机、电源、
+          通信与结构件，平台在每一次加购时实时校验这套组合在物理与电气层面是否可行，最终输出可下单的方案清单。
+        </p>
+        <h4>要解决的问题</h4>
+        <ul>
+          <li><b>买错。</b>3.3V 主控接 5V 传感器、IO 数量不够、I2C 地址撞车——这些错误通常在收到货、开始接线时才暴露。</li>
+          <li><b>返工。</b>工程师要手工核对引脚分配、总线占用与功耗预算，一轮打样前要花两三天做纸面推演。</li>
+          <li><b>断链。</b>选型、下单、付款、发货分散在不同工具里，方案无法复用，批量采购没有流程。</li>
+        </ul>
+        <h4>视觉设计语言</h4>
+        <p>
+          设计系统融合了两处参考：<b>ArtCraft（getartcraft.com）</b>的暖白纸感底色、近黑墨色、发丝分割线与编号章节排版；
+          <b>WuXiaoMuer 的 GitHub 主页</b>的紫罗兰主色、圆角发光与极客徽章气质。合成后的观感是「工程编辑体」——
+          像一本排版克制、信息密度高的技术手册。
+        </p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>令牌</th><th>取值</th><th>来源与用途</th></tr></thead>
+            <tbody>
+              <tr><td><code>--bg</code></td><td><code>#f2f1ee</code></td><td>ArtCraft 暖白纸底，全局页面背景</td></tr>
+              <tr><td><code>--bg-raised</code></td><td><code>#faf9f7</code></td><td>卡片、面板等抬起层</td></tr>
+              <tr><td><code>--bg-sunken</code></td><td><code>#e9e8e4</code></td><td>下沉区、表头、筛选栏</td></tr>
+              <tr><td><code>--ink</code> / <code>--ink-strong</code></td><td><code>#101014</code> / <code>#000</code></td><td>正文与标题墨色</td></tr>
+              <tr><td><code>--accent</code></td><td><code>#a78bfa</code></td><td>WuXiaoMuer 签名紫罗兰，品牌主色</td></tr>
+              <tr><td><code>--accent-ink</code></td><td><code>#6d4ee0</code></td><td>紫罗兰的可读性加深版，用于链接与文字强调</td></tr>
+              <tr><td><code>--blue</code></td><td><code>#2d81ff</code></td><td>ArtCraft 蓝，作为次色与状态色</td></tr>
+              <tr><td><code>--line</code></td><td><code>rgba(16,16,20,.13)</code></td><td>发丝分割线，构成全部边框体系</td></tr>
+              <tr><td><code>--font-serif</code></td><td><code>Instrument Serif</code></td><td>大标题衬线体，营造编辑感</td></tr>
+              <tr><td><code>--font-mono</code></td><td><code>Geist Mono</code></td><td>标签、参数、编号、价格的等宽体</td></tr>
+              <tr><td><code>--font-sans</code></td><td><code>Archivo</code></td><td>正文无衬线体</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note"><p>全部字体均配置了系统中文字体回退（PingFang SC / Noto Sans SC），字体加载失败时排版不塌陷。</p></div>
+      </section>
+
+      <section id="modules">
+        <span class="sec-kicker">02 / Core modules</span>
+        <h2>核心功能模块</h2>
+        <p>平台由 8 个功能模块构成，覆盖从浏览到履约的完整链路。</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>编号</th><th>模块</th><th>承载页面</th><th>职责</th></tr></thead>
+            <tbody>
+              <tr><td><b>F1</b></td><td><b>硬件分类浏览</b></td><td><code>catalog.html</code></td>
+                <td>8 大分类 + 多维筛选（关键词 / 总线接口 / 供电电压 / 价格上限 / 库存 / 排序），提供卡片与紧凑两种视图，支持分页与筛选条件回显。</td></tr>
+              <tr><td><b>F2</b></td><td><b>模块参数详情</b></td><td><code>module.html</code></td>
+                <td>完整规格表、接口与协议、供电需求、库存与热度排名；结合当前方案实时输出兼容性结论，并给出同类替代推荐。</td></tr>
+              <tr><td><b>F3</b></td><td><b>自定义选型与组合</b></td><td><code>builder.html</code></td>
+                <td>三栏工作台，按 8 个功能分区装配方案；支持增删、数量调整、同类替换、命名、存为模板、载入预设方案。</td></tr>
+              <tr><td><b>F4</b></td><td><b>兼容性校验引擎</b></td><td><code>builder.html</code></td>
+                <td>9 条规则实时校验：总线数量、IO 占用、逻辑电平、I2C 地址冲突、供电能力、算力档位、总线协议、驱动板、外接电源。</td></tr>
+              <tr><td><b>F5</b></td><td><b>方案预览与汇总</b></td><td><code>builder.html</code> / <code>checkout.html</code></td>
+                <td>资源占用表、功耗预算表、成本明细、难度评分、装配工时估算，支持 BOM CSV / 方案 JSON / 文本清单三种导出。</td></tr>
+              <tr><td><b>F6</b></td><td><b>选型热度</b></td><td><code>index.html</code> / <code>catalog.html</code></td>
+                <td>7 日 / 30 日双维度热度指数、环比涨跌、分类热度聚合、14 日迷你趋势线，并融合本机真实选型行为加权。</td></tr>
+              <tr><td><b>F7</b></td><td><b>下单与付款</b></td><td><code>checkout.html</code> / <code>pay.html</code></td>
+                <td>收货信息校验、运费与加急计费、订单创建、微信支付与支付宝双通道扫码、30 分钟倒计时与状态轮询、服务端回调确认。</td></tr>
+              <tr><td><b>F8</b></td><td><b>后台处理</b></td><td><code>admin.html</code></td>
+                <td>订单看板与状态流转、发货单号录入、批量转备货、退款与库存回滚、库存调整、订单与库存 CSV 导出、埋点审计。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="personas">
+        <span class="sec-kicker">03 / Personas</span>
+        <h2>目标用户画像</h2>
+        <p>五类角色的核心诉求差异极大：学生怕买错，工程师怕返工，初创怕断供，机构要标准化，极客要可行性判断。平台用同一套数据模型分别回应。</p>
+        <div id="personaDoc"></div>
+      </section>
+
+      <section id="flow">
+        <span class="sec-kicker">04 / Flow</span>
+        <h2>完整使用流程</h2>
+        <p>全链路共 9 个环节，其中 4 个由用户驱动、3 个由系统自动完成、2 个由平台后台执行。</p>
+
+        <div class="card card-pad-lg mb-24" style="overflow-x:auto">
+          <svg viewBox="0 0 940 300" width="100%" style="min-width:760px;display:block" role="img" aria-label="使用流程图">
+            <defs>
+              <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0 0L10 5L0 10z" fill="rgba(16,16,20,.45)"/>
+              </marker>
+            </defs>
+            <g font-family="monospace" font-size="9.5" fill="rgba(16,16,20,.42)">
+              <text x="0" y="14">USER</text><text x="0" y="150">SYSTEM</text><text x="0" y="286">PLATFORM</text>
+            </g>
+            <g stroke="rgba(16,16,20,.08)"><path d="M0 22h940M0 158h940M0 294h940"/></g>
+
+            <!-- 用户行 -->
+            <g>
+              <rect x="60" y="40" width="120" height="46" rx="8" fill="#faf9f7" stroke="rgba(16,16,20,.22)"/>
+              <text x="120" y="60" text-anchor="middle" font-size="11" fill="#101014" font-weight="600">浏览模块库</text>
+              <text x="120" y="74" text-anchor="middle" font-size="8.5" fill="rgba(16,16,20,.45)">筛选 / 搜索</text>
+
+              <rect x="240" y="40" width="120" height="46" rx="8" fill="#faf9f7" stroke="rgba(16,16,20,.22)"/>
+              <text x="300" y="60" text-anchor="middle" font-size="11" fill="#101014" font-weight="600">查看参数详情</text>
+              <text x="300" y="74" text-anchor="middle" font-size="8.5" fill="rgba(16,16,20,.45)">规格 / 兼容提示</text>
+
+              <rect x="420" y="40" width="120" height="46" rx="8" fill="#faf9f7" stroke="rgba(16,16,20,.22)"/>
+              <text x="480" y="60" text-anchor="middle" font-size="11" fill="#101014" font-weight="600">选型与组合</text>
+              <text x="480" y="74" text-anchor="middle" font-size="8.5" fill="rgba(16,16,20,.45)">工作台装配</text>
+
+              <rect x="600" y="40" width="120" height="46" rx="8" fill="#101014" stroke="#a78bfa"/>
+              <text x="660" y="60" text-anchor="middle" font-size="11" fill="#f2f1ee" font-weight="600">下单</text>
+              <text x="660" y="74" text-anchor="middle" font-size="8.5" fill="rgba(242,241,238,.55)">收货 / 发票</text>
+
+              <rect x="780" y="40" width="120" height="46" rx="8" fill="#101014" stroke="#a78bfa"/>
+              <text x="840" y="60" text-anchor="middle" font-size="11" fill="#f2f1ee" font-weight="600">付款</text>
+              <text x="840" y="74" text-anchor="middle" font-size="8.5" fill="rgba(242,241,238,.55)">微信 / 支付宝</text>
+            </g>
+
+            <!-- 系统行 -->
+            <g>
+              <rect x="420" y="176" width="120" height="46" rx="8" fill="#e9e8e4" stroke="rgba(167,139,250,.5)"/>
+              <text x="480" y="196" text-anchor="middle" font-size="11" fill="#101014" font-weight="600">自动校验</text>
+              <text x="480" y="210" text-anchor="middle" font-size="8.5" fill="rgba(16,16,20,.45)">9 条规则</text>
+
+              <rect x="600" y="176" width="120" height="46" rx="8" fill="#e9e8e4" stroke="rgba(167,139,250,.5)"/>
+              <text x="660" y="196" text-anchor="middle" font-size="11" fill="#101014" font-weight="600">方案预览汇总</text>
+              <text x="660" y="210" text-anchor="middle" font-size="8.5" fill="rgba(16,16,20,.45)">BOM / 成本</text>
+
+              <rect x="780" y="176" width="120" height="46" rx="8" fill="#e9e8e4" stroke="rgba(167,139,250,.5)"/>
+              <text x="840" y="196" text-anchor="middle" font-size="11" fill="#101014" font-weight="600">支付回调确认</text>
+              <text x="840" y="210" text-anchor="middle" font-size="8.5" fill="rgba(16,16,20,.45)">验签 / 置状态</text>
+            </g>
+
+            <!-- 平台行 -->
+            <g>
+              <rect x="600" y="238" width="140" height="46" rx="8" fill="#faf9f7" stroke="rgba(16,16,20,.22)"/>
+              <text x="670" y="258" text-anchor="middle" font-size="11" fill="#101014" font-weight="600">后台处理</text>
+              <text x="670" y="272" text-anchor="middle" font-size="8.5" fill="rgba(16,16,20,.45)">备货 → 发货</text>
+
+              <rect x="780" y="238" width="120" height="46" rx="8" fill="#faf9f7" stroke="rgba(16,16,20,.22)"/>
+              <text x="840" y="258" text-anchor="middle" font-size="11" fill="#101014" font-weight="600">收货与完成</text>
+              <text x="840" y="272" text-anchor="middle" font-size="8.5" fill="rgba(16,16,20,.45)">确认收货</text>
+            </g>
+
+            <!-- 连线 -->
+            <g stroke="rgba(16,16,20,.42)" stroke-width="1.1" fill="none" marker-end="url(#arw)">
+              <path d="M180 63h54"/><path d="M360 63h54"/><path d="M540 63h54"/>
+              <path d="M720 63h54"/>
+              <path d="M480 86v84" stroke-dasharray="3 3"/>
+              <path d="M540 199h54"/>
+              <path d="M660 86v84" stroke-dasharray="3 3"/>
+              <path d="M840 86v84" stroke-dasharray="3 3"/>
+              <path d="M840 222v10" stroke-dasharray="3 3"/>
+              <path d="M740 261h34"/>
+              <path d="M600 261H500V90" stroke-dasharray="3 3"/>
+            </g>
+            <text x="500" y="128" font-size="8" fill="rgba(16,16,20,.4)" font-family="monospace">校验通过才可继续</text>
+            <text x="516" y="286" font-size="8" fill="rgba(16,16,20,.4)" font-family="monospace">冲突则回到工作台修改</text>
+          </svg>
+        </div>
+
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>环节</th><th>执行方</th><th>说明</th><th>产出</th></tr></thead>
+            <tbody id="flowDoc"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="pages">
+        <span class="sec-kicker">05 / Pages</span>
+        <h2>各页面的具体结构与交互方式</h2>
+        <div id="pagesDoc"></div>
+      </section>
+
+      <section id="responsive">
+        <span class="sec-kicker">06 / Responsive</span>
+        <h2>响应式设计要求</h2>
+        <p>断点采用「内容优先」而非设备优先的原则：一旦布局开始拥挤就换断点，不绑定具体机型。</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>断点</th><th>目标环境</th><th>布局变化</th></tr></thead>
+            <tbody>
+              <tr><td><code>≥ 1280px</code></td><td>桌面宽屏</td>
+                <td>工作台三栏（290 / 自适应 / 350）；模块网格每行 4 列；筛选侧栏常驻左侧。</td></tr>
+              <tr><td><code>1080 – 1280px</code></td><td>桌面窄屏 / 小笔记本</td>
+                <td>工作台三栏收窄为 250 / 自适应 / 320；模块网格 3 列；筛选侧栏收为可折叠。</td></tr>
+              <tr><td><code>860 – 1080px</code></td><td>平板横屏</td>
+                <td>工作台改为顶部三页签（选模块 / 我的方案 / 校验汇总）；详情页双栏改为单栏；首页热度区改单列。</td></tr>
+              <tr><td><code>620 – 860px</code></td><td>平板竖屏 / 大屏手机</td>
+                <td>导航折叠为汉堡菜单，链接纵向展开；表单双列改单列；卡片网格 2 列；Toast 改为通栏贴底。</td></tr>
+              <tr><td><code>&lt; 620px</code></td><td>手机</td>
+                <td>模块网格 1 列且隐藏简介、缩小缩略图；步骤条隐藏文字标签只留圆点；统计卡改单列；页脚改单列；弹层宽度 94vw。</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h4>强制要求</h4>
+        <ul>
+          <li><b>触控目标。</b>所有可点击元素的命中区域不小于 40×40px，移动端导航项纵向内边距 11px。</li>
+          <li><b>横向滚动。</b>表格类内容（订单表、规格表）统一包裹在可横向滚动的容器中，页面本身不产生横向滚动。</li>
+          <li><b>粘性元素。</b>工作台与结算页的汇总栏使用 <code>position: sticky</code>，但移动端必须解除粘性并改为文档流，避免遮挡内容。</li>
+          <li><b>图片与图表。</b>所有 SVG 使用 <code>viewBox</code> 与百分比宽度自适应；流程图设置最小宽度并允许容器横向滚动，不缩放变形。</li>
+          <li><b>动效降级。</b>遵循 <code>prefers-reduced-motion</code>，在该媒体查询下把所有动画与过渡时长压到 0.001ms。</li>
+          <li><b>打印。</b>导航、页脚、操作按钮统一带 <code>no-print</code>，配货单与说明书可直接打印或导出 PDF。</li>
+        </ul>
+      </section>
+
+      <section id="rules">
+        <span class="sec-kicker">07 / Engine</span>
+        <h2>兼容性校验规则</h2>
+        <p>引擎在每次方案变更时全量重算，输出「通过 / 提醒 / 冲突」三级结论。规则实现位于 <code>assets/js/core.js</code> 的 <code>Compat.evaluate()</code>。</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>编号</th><th>规则</th><th>级别</th><th>判定逻辑与处置建议</th></tr></thead>
+            <tbody>
+              <tr><td><code>R0</code></td><td>缺少主控</td><td><span class="tag tag-danger">冲突</span></td>
+                <td>方案中没有主控开发板时阻断结算。主控是全部兼容性判断的基准，没有它无法计算总线与供电上限。</td></tr>
+              <tr><td><code>R1</code></td><td>接口数量超限</td><td><span class="tag tag-danger">冲突</span></td>
+                <td>逐项比对 UART / I2S / CSI / ADC / PWM 的占用数与主控提供的路数；SPI 按「每个控制器最多 3 个从设备」折算。</td></tr>
+              <tr><td><code>R2</code></td><td>GPIO 引脚不足</td><td><span class="tag tag-danger">冲突</span></td>
+                <td>累加所有模块占用的 IO 数并与主控可用 IO 比较。建议加装 PCF8574 扩展 8 路，或改用 I2C 接口的模块。</td></tr>
+              <tr><td><code>R3</code></td><td>逻辑电平不匹配</td><td><span class="tag tag-warn">提醒</span></td>
+                <td>3.3V 主控搭配 5V 器件时告警；若方案含「4 路双向电平转换」则降级为通过，并提示通道数是否够用。</td></tr>
+              <tr><td><code>R4</code></td><td>I2C 地址冲突</td><td><span class="tag tag-warn">提醒</span></td>
+                <td>按地址分组，同一地址出现两个及以上器件即告警。方案含 TCA9548A 时降级为通过，并提示需在代码中切换通道。</td></tr>
+              <tr><td><code>R5</code></td><td>供电能力不足</td><td><span class="tag tag-danger">冲突</span></td>
+                <td>按峰值电流汇总 5V 与 3.3V 轨负载，与主控供电能力加外部电源输出之和比较。余量低于 25% 时降级为提醒。</td></tr>
+              <tr><td><code>R6</code></td><td>算力档位不足</td><td><span class="tag tag-danger">冲突</span></td>
+                <td>取全部外设所需的最高算力档（基础 / 进阶 / AI）与主控档位比较。摄像头与神经网络推理类模块要求 AI 档。</td></tr>
+              <tr><td><code>R7</code></td><td>缺少必需的总线协议</td><td><span class="tag tag-danger">冲突</span></td>
+                <td>校验 WiFi / BLE / CAN 等协议能力。CAN 收发模块要求主控内置 CAN 控制器，只有 STM32 系列满足。</td></tr>
+              <tr><td><code>R8</code></td><td>缺少驱动板或外接电源</td><td><span class="tag tag-warn">提醒</span></td>
+                <td>含执行器但无任何电机/舵机驱动板时告警；需要 12V / 独立 5V 的器件找不到对应电源时告警。</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h4>难度与工时估算</h4>
+        <p>
+          难度基准 1 分，模块种类超过 2 类 +1、超过 6 类 +1，含驱动板 +1，含焊接或定制 PCB +1，
+          含 12V 强电走线 +1，含 AI 档模块 +1，上限 5 分。装配工时 = 0.5 小时基础 +
+          每类模块 0.28 小时 + 驱动板 0.6 小时 + 焊接 1.6 小时。
+        </p>
+      </section>
+
+      <section id="heat">
+        <span class="sec-kicker">08 / Heat</span>
+        <h2>选型热度模块（示意）</h2>
+        <div class="note warn">
+          <p><b>数据性质声明：</b>本模块为演示数据。热度指数由「平台需求分布基线」与「本机真实选型行为」加权合成，
+          用于验证排序、筛选与图表链路，<b>不代表真实市场数据</b>。</p>
+        </div>
+        <h4>本次修复与补全的内容</h4>
+        <ol>
+          <li><b>补全时间维度。</b>原实现只有单一热度值。现提供「近 7 日」与「近 30 日」双口径切换，
+            7 日口径读取种子环比，30 日口径由 <code>(d7 − d30) / d30</code> 反算环比，保证三个数字互相自洽。</li>
+          <li><b>修复数据不自洽。</b>此前热度值、环比、排名可能彼此矛盾。现在 <code>d30</code> 由 <code>d7</code> 与 <code>delta</code>
+            反推得出（<code>d30 = d7 / (1 + delta)</code>），三者从构造上就不可能冲突。</li>
+          <li><b>接入真实行为。</b>新增 <code>Heat.record(type, id)</code> 埋点，记录浏览 / 加购 / 下单三类事件到 localStorage；
+            综合热度 = <code>clamp(基线 × 0.7 + 本机加权 × 0.3, 0, 100)</code>。无本机数据时自动回退为纯基线，不产生偏差。</li>
+          <li><b>补全可视化。</b>新增热度条、环比涨跌箭头（遵循中国市场惯例：<span style="color:var(--danger)">涨为红</span>、
+            <span style="color:var(--ok)">跌为绿</span>）、14 日迷你趋势线（种子可复现，末端收敛到当前值）、分类热度均值聚合。</li>
+          <li><b>补全交互。</b>时间范围切换、分类筛选、点击跳转详情、分类行点击反向筛选、清空本机行为数据后自动重算。</li>
+          <li><b>明确口径。</b>页面常驻数据口径说明卡片，后台「热度与埋点」页提供埋点明细审计与清空入口。</li>
+        </ol>
+        <h4>替换为真实数据</h4>
+        <pre><code>// 1) 前端埋点改为上报服务端
+window.Mosaic.Heat.record = (type, id) =&gt;
+  fetch('/api/analytics/heat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, id, ts: Date.now(), path: location.pathname })
+  });
+
+// 2) 热度列表改为请求服务端聚合结果
+const list = await fetch('/api/heat?range=7d&amp;cat=sensor').then(r =&gt; r.json());
+// 返回结构保持一致：{ moduleId, score, delta, rank }
+// 其余渲染逻辑（热度条、趋势线、分类聚合）无需改动</code></pre>
+      </section>
+
+      <section id="commerce">
+        <span class="sec-kicker">09 / Commerce</span>
+        <h2>下单、付款与后台处理流程</h2>
+        <h4>订单状态机</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>状态</th><th>名称</th><th>可执行动作</th><th>触发方</th></tr></thead>
+            <tbody id="stateDoc"></tbody>
+          </table>
+        </div>
+        <h4>端到端链路（已在演示环境打通）</h4>
+        <ol>
+          <li><b>结算页</b>读取工作台方案，展示模块清单与实时计费；校验收货人、手机号（<code>/^1[3-9]\d{9}$/</code>）、
+            省份、详细地址（≥5 字符）、可选邮箱格式、发票必填项与条款勾选。</li>
+          <li><b>提交订单</b>前二次校验库存，随后写入订单对象并生成订单号 <code>MS + 时间戳 + 3 位随机</code>，
+            跳转到支付页。</li>
+          <li><b>支付页</b>按渠道生成支付凭据（<code>code_url</code> / <code>qr_code</code> 占位）与支付单号，
+            渲染二维码、启动 30 分钟倒计时，并每秒核对一次订单状态。</li>
+          <li><b>支付完成</b>由「模拟回调」按钮触发，或由真实服务端异步通知触发。回调落库时执行三件事：
+            写入支付渠道与支付单号、记录回调来源用于审计、原子扣减库存。</li>
+          <li><b>后台</b>实时可见该订单，可执行「开始备货 → 发货（必填快递单号）→ 标记完成」，
+            也可在已付款或备货中状态发起退款；退款时自动回滚库存。</li>
+          <li><b>前台订单页</b>展示完整状态时间线、物流单号与配货清单，支持确认收货与一键复购。</li>
+        </ol>
+        <div class="note">
+          <p>演示环境的数据存放在本机 <code>localStorage</code>（键名 <code>mosaic.orders.v1</code>），
+          前台与后台共享同一份数据，因此下单后无需任何操作即可在后台看到订单。
+          生产环境只需把 <code>Store</code> 的读写替换为服务端接口调用，其余业务逻辑不变。</p>
+        </div>
+      </section>
+
+      <section id="pay">
+        <span class="sec-kicker">10 / Payment</span>
+        <h2>微信支付与支付宝接入方案</h2>
+        <p>支付能力已按「前端只负责渲染与轮询、签名与验签全部在服务端」的原则预留。项目内置可直接部署到 Vercel / Cloudflare Workers 的 Serverless 示例。</p>
+        <div id="payDoc"></div>
+
+        <h4>目录结构</h4>
+        <pre><code>api/
+├── pay/wechat/create.js   # V3 Native 下单，返回 code_url
+├── pay/wechat/notify.js   # 异步通知验签 + 解密 + 置为已付款
+├── pay/alipay/create.js   # alipay.trade.precreate，返回 qr_code
+├── pay/alipay/notify.js   # notify_url 验签（RSA2）+ 置为已付款
+└── orders/index.js        # 订单创建与状态查询（服务端权威数据源）</code></pre>
+
+        <h4>前端对接点</h4>
+        <p>只有两处需要改动，都在 <code>assets/js/core.js</code> 的 <code>Pay</code> 对象内：</p>
+        <pre><code>// ① 下单：把本地生成改为请求服务端
+Pay.create = async (order, channel) =&gt; {
+  const r = await fetch(`/api/pay/${channel}/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderNo: order.no, amount: order.amount, subject: order.schemeName })
+  });
+  const d = await r.json();
+  return { channel, code: d.codeUrl || d.qrCode, payNo: d.prepayId, expireAt: d.expireAt };
+};
+
+// ② 查询：由服务端返回权威状态，前端仅做展示
+Pay.query = async (orderId) =&gt;
+  fetch(`/api/orders/${orderId}/status`).then(r =&gt; r.json());</code></pre>
+
+        <div class="note warn">
+          <p><b>安全红线：</b>商户私钥、APIv3 密钥、支付宝应用私钥等敏感凭据只能存放在服务端环境变量中，
+          绝不能出现在前端代码或静态托管产物里。回调接口必须验签并校验金额，防止伪造通知。</p>
+        </div>
+      </section>
+
+      <section id="deploy">
+        <span class="sec-kicker">11 / Deploy</span>
+        <h2>部署方案</h2>
+        <p>站点为纯静态产物，无构建步骤、无运行时依赖。所有资源路径均为相对路径，可直接托管在任意静态服务上。</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>平台</th><th>配置方式</th><th>已提供文件</th></tr></thead>
+            <tbody>
+              <tr><td><b>GitHub Pages</b></td><td>仓库 Settings → Pages → Source 选择 GitHub Actions，推送到 <code>main</code> 即自动发布</td>
+                <td><code>.github/workflows/deploy-pages.yml</code>、<code>.nojekyll</code></td></tr>
+              <tr><td><b>Vercel</b></td><td>导入仓库后零配置识别为静态站点；<code>api/</code> 目录自动转为 Serverless Functions</td>
+                <td><code>vercel.json</code></td></tr>
+              <tr><td><b>Cloudflare Pages</b></td><td>连接仓库，Build command 留空，Output directory 填 <code>/</code></td>
+                <td><code>_headers</code>、<code>_redirects</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h4>本地预览</h4>
+        <pre><code># 任选其一，必须通过 HTTP 服务访问（不要直接双击打开 HTML）
+python3 -m http.server 8080
+npx serve .
+vercel dev</code></pre>
+        <h4>部署后需要确认的项</h4>
+        <ul>
+          <li>若部署在子路径（如 <code>user.github.io/repo/</code>），页面间的相对链接会自动正确解析，无需改配置。</li>
+          <li>后台口令与演示数据均存于浏览器本地，换设备后数据不共享——这是演示环境的预期行为。</li>
+          <li>接入真实支付后，需在 <code>vercel.json</code> 或 Worker 配置中把 <code>/api/*</code> 路由到服务端函数。</li>
+        </ul>
+      </section>
+
+      <section id="roadmap">
+        <span class="sec-kicker">12 / Roadmap</span>
+        <h2>数据模型与后续迭代</h2>
+        <h4>核心数据结构</h4>
+        <pre><code>// 方案 Scheme
+{ id, name, note,
+  items: [{ id, qty }],
+  service: { assembly, rush, invoice },
+  createdAt, updatedAt }
+
+// 订单 Order
+{ id, no, state, schemeId, schemeName,
+  lines: [{ id, name, cat, brand, price, qty, sum }],
+  cost: { subtotal, assembly, shipping, rush, total, itemCount, kinds },
+  amount,
+  contact: { name, phone, province, city, addr, email, zip, full },
+  invoice: { title, type, tax } | null,
+  payChannel, payNo, paidAt, settleVia,
+  tracking, carrier, shipNote, adminNote, refund,
+  validation: { verdict, errors, warnings, difficulty, hours },
+  timeline: [{ state, at, note }],
+  createdAt }
+
+// 模块 Module（服务端可扩展字段）
+{ id, name, en, cat, brand, price, stock,
+  tags[], blurb, specs[[k, v]],
+  req: { bus, addr, addrHex, v, mA, peak, cls, pins, proto, driver, ext, rail, kind },
+  caps: { i2c, spi, uart, gpio, pwm, adc, i2s, csi, v, cls, mA5, mA33, wifi, ble, can },
+  heat: { d7, d30, delta } }</code></pre>
+        <h4>后续迭代建议</h4>
+        <ul>
+          <li><b>真实后端。</b>引入云数据库与用户认证，把方案、订单、库存迁到服务端；订单创建与库存扣减放进同一事务。</li>
+          <li><b>引脚级自动分配。</b>在现有总线数量校验之上，进一步做具体引脚编号的自动分配与冲突消解，输出接线表。</li>
+          <li><b>固件模板。</b>按方案组合自动生成 PlatformIO / Arduino 工程骨架与驱动初始化代码，随单交付。</li>
+          <li><b>3D 装配预览。</b>基于模块尺寸与接口朝向生成爆炸图，下单前预览物理干涉。</li>
+          <li><b>供应链。</b>对接元器件库存与价格接口，实现缺货自动替代与实时报价。</li>
+          <li><b>BOM 版本管理。</b>方案支持多版本对比与变更记录，适配硬件产品的迭代节奏。</li>
+        </ul>
+      </section>
+
+    </article>
+  </div>
+</main>
+
+<div id="footHost"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/core.js"></script>
+<script>
+(function () {
+  const { U, ICO, D, UI } = window.Mosaic;
+  UI.mount('docs.html');
+
+  /* ---------- 目录 ---------- */
+  const SECTIONS = [
+    ['overview', '项目概述与设计语言'],
+    ['modules', '核心功能模块'],
+    ['personas', '目标用户画像'],
+    ['flow', '完整使用流程'],
+    ['pages', '页面结构与交互'],
+    ['responsive', '响应式设计要求'],
+    ['rules', '兼容性校验规则'],
+    ['heat', '选型热度模块'],
+    ['commerce', '下单付款与后台'],
+    ['pay', '支付接入方案'],
+    ['deploy', '部署方案'],
+    ['roadmap', '数据模型与迭代'],
+  ];
+  U.$('#toc').innerHTML = SECTIONS.map(([id, t]) => `<a href="#${id}" data-sec="${id}">${t}</a>`).join('');
+  const links = U.$$('#toc a');
+  const obs = new IntersectionObserver(es => {
+    es.forEach(e => {
+      if (!e.isIntersecting) return;
+      links.forEach(l => l.classList.toggle('on', l.getAttribute('data-sec') === e.target.id));
+    });
+  }, { rootMargin: '-72px 0px -70% 0px' });
+  SECTIONS.forEach(([id]) => { const el = U.$('#' + id); if (el) obs.observe(el); });
+
+  /* ---------- 用户画像 ---------- */
+  U.$('#personaDoc').innerHTML = D.PERSONAS.map((p, i) => `
+    <div class="card mt-16">
+      <div class="spread" style="align-items:flex-start;flex-wrap:wrap;gap:12px">
+        <div class="row" style="gap:11px;align-items:center">
+          <span style="width:34px;height:34px;border-radius:9px;background:var(--bg-sunken);display:grid;place-items:center;color:var(--accent-deep);flex:none">${ICO.svg(p.icon, 18)}</span>
+          <div>
+            <div style="font-size:.98rem;font-weight:600">${i + 1}. ${p.name}</div>
+            <div class="mono" style="font-size:.68rem;color:var(--faint)">预算区间 ${p.budget}</div>
+          </div>
+        </div>
+        <span class="tag tag-accent">${p.tag}</span>
+      </div>
+      <table class="mt-16" style="margin-bottom:0">
+        <tbody>
+          <tr><th style="width:86px">核心痛点</th><td>${p.pain}</td></tr>
+          <tr><th>核心诉求</th><td>${p.need}</td></tr>
+          <tr><th>平台价值</th><td>${p.value}</td></tr>
+        </tbody>
+      </table>
+    </div>`).join('');
+
+  /* ---------- 流程表 ---------- */
+  U.$('#flowDoc').innerHTML = D.FLOW.map(f => `
+    <tr>
+      <td class="mono"><b>${f.n}</b></td>
+      <td><b>${f.title}</b></td>
+      <td><span class="tag ${f.actor === '系统' ? 'tag-accent' : (f.actor === '平台' ? 'tag-blue' : 'tag-line')}">${f.actor}</span></td>
+      <td>${f.desc}</td>
+      <td class="mono" style="font-size:.76rem">${f.out}</td>
+    </tr>`).join('');
+
+  /* ---------- 页面结构 ---------- */
+  const PAGES = [
+    {
+      file: 'index.html', name: '首页', role: '价值传递与入口分流',
+      structure: ['Hero：品牌主色徽标 + 衬线大标题 + 双 CTA + 模块组合示意 SVG', '数据条：在售模块 / 兼容性规则数 / 组合空间 / 现货库存',
+        '01 分类浏览：8 张分类卡，含数量、起售价与简介', '02 选型热度：7 日 / 30 日切换 + 分类筛选 + Top 8 排行 + 分类热度均值 + 口径说明',
+        '03 工作方式：4 步闭环卡片', '04 目标用户：5 张画像卡（痛点 / 诉求 / 价值）', '05 交易与部署：4 张能力卡', 'CTA 深色横幅 + 页脚'],
+      interaction: ['热度时间范围切换与分类筛选实时重排', '点击热度行跳转模块详情；点击分类热度行反向筛选',
+        '清空本机行为数据后热度回退为纯基线并给出提示', '所有卡片 hover 抬起并加深边框'],
+    },
+    {
+      file: 'catalog.html', name: '模块库', role: '候选集收敛',
+      structure: ['页头：面包屑 + 标题 + 视图切换（卡片 / 紧凑）+ 工作台入口（含已选数量徽标）',
+        '左侧筛选栏：搜索框、分类（带数量）、总线接口、供电电压、价格上限滑块、排序、仅显示有货、是否含主控',
+        '结果区：已选筛选条件回显条 + 命中计数 + 结果主体 + 分页器'],
+      interaction: ['任一筛选变更即重排结果并同步更新 URL 参数（分类 / 排序 / 关键词）', '筛选条件以可点击的 chip 回显，点击即移除该项',
+        '卡片视图点「加入」即时写入方案并记录埋点，卡片标记「已选 ×N」', '紧凑视图以表格行展示接口、电压、热度、价格、库存与快捷加购',
+        '价格滑块使用 200ms 防抖，避免拖动时高频重排'],
+    },
+    {
+      file: 'module.html', name: '模块详情', role: '决策支持',
+      structure: ['面包屑 + 视觉区（分类线稿 + 规格标签 + 库存徽标）+ 四项指标（7 日热度 / 全站排名 / 环比 / 难度）',
+        '14 日热度趋势线 + 30 日均值对照', '接口与供电表（总线、I2C 地址、电压、典型与峰值电流、占用 IO、最低算力、驱动与外接电源、协议要求）',
+        '右侧：标签组、标题、品牌、简介、定价卡（数量步进器 + 加入方案 + 立即下单 + 复制链接）',
+        '与当前方案的兼容性结论（逐条列出相关规则命中）', '完整规格参数表', '同类与相近价位推荐'],
+      interaction: ['页面加载即记录一次浏览埋点', '加入方案后页面重载以刷新「已选」状态与兼容性结论',
+        '立即下单在缺少主控时给出提示并引导到主控分类', '推荐区加购不刷新页面，仅就地更新按钮状态与导航徽标'],
+    },
+    {
+      file: 'builder.html', name: '选型工作台', role: '核心创作场景',
+      structure: ['页头：可编辑的方案名 + 方案元信息（编号 / 件数 / 合计 / 更新时间）+ 载入模板 / 存为模板 / 清空',
+        '左栏：搜索 + 分类 chip + 模块选择列表（已选置后、按热度排序、显示价格与库存）',
+        '中栏：8 个功能分区（主控 / 传感器 / 执行器 / 通信 / 显示 / 电源 / 扩展 / 结构），每行含缩略图标、名称、品牌、单价、数量步进器、行小计、替换与移除；下方为附加服务卡',
+        '右栏：结论横幅（通过 / 提醒 / 冲突）、兼容性报告、资源占用表、功耗预算表、成本明细、方案输出按钮、结算 CTA'],
+      interaction: ['任意增删改数量后，右栏六块内容全部重算并保持滚动位置', '主控类模块互斥：加入新主控自动移除原主控并提示',
+        '替换弹层列出同类模块，并对每个候选预先跑一遍校验，直接标注「兼容 / 有提醒 / 有冲突」',
+        '模板弹层提供 4 套平台预设方案（智能家居节点 / 循迹小车 / LoRa 监测站 / AI 视觉分拣台）与用户自存模板',
+        '存在冲突时结算按钮禁用并显示冲突条数；方案为空时提示先选主控',
+        '导出 BOM CSV（含 BOM 表头与合计行）、方案 JSON（含校验结论）、文本清单、打印配货单',
+        '≤1080px 时三栏合并为顶部三页签，切换不丢失状态'],
+    },
+    {
+      file: 'checkout.html', name: '结算下单', role: '交易转化',
+      structure: ['四步步骤条：方案确认 → 收货信息 → 支付方式 → 提交订单', 'Step 1 方案清单与兼容性结论回显',
+        'Step 2 收货表单（收货人 / 手机号 / 省份下拉 / 城市区县 / 详细地址 / 邮箱 / 邮编 / 备注）',
+        'Step 2b 发票信息（按需展开：抬头 / 类型 / 税号）', 'Step 3 支付渠道单选卡（微信 / 支付宝 / 演示）+ 条款勾选',
+        '右栏粘性订单摘要：模块逐项、模块小计、代装配、加急、运费、应付合计、免邮提示、支付方式与预计发货'],
+      interaction: ['表单校验：手机号正则、邮箱格式、地址长度、发票必填项随类型变化；错误项滚动定位并标红',
+        '运费按省份实时判定（偏远地区加价），满 ¥299 免运费并显示还差多少',
+        '表单值变更即写入本地草稿，刷新不丢失', '提交前二次校验库存，不足则列出具体模块并阻断',
+        '提交成功生成订单号并跳转支付页'],
+    },
+    {
+      file: 'pay.html', name: '支付', role: '资金收讫',
+      structure: ['订单信息四项（订单号 / 件数 / 收货人脱敏 / 应付金额）', '渠道切换列表（含模式与资质要求说明）',
+        '二维码占位（确定性伪随机矩阵 + 扫描线动效）+ 支付说明 + 倒计时卡 + 支付单号',
+        '操作区：模拟支付成功 / 查询支付状态 / 取消订单 + 接口路径提示',
+        '右栏：方案清单与计费明细、收货信息、发票、备注、渠道接入步骤说明',
+        '成功态：成功卡片 + 四项实付信息 + 订单进度时间线 + 下一步指引 + 导出订单'],
+      interaction: ['切换渠道即重新生成支付凭据与二维码，并写回订单的支付渠道字段',
+        '倒计时每秒刷新，剩余 5 分钟内转为警示色；归零则自动关闭订单并提示',
+        '每秒核对一次订单状态，一旦检测到已付款立即切换到成功态',
+        '「模拟支付成功」等价于服务端回调落库：写入支付单号、记录回调来源、扣减库存',
+        '成功页明确标注这是演示结果，并说明真实环境由服务端异步通知驱动'],
+    },
+    {
+      file: 'orders.html', name: '我的订单', role: '履约透明',
+      structure: ['四项统计（订单总数 / 待付款 / 处理中 / 累计支付金额）', '查询栏：订单号或手机号搜索 + 状态筛选页签 + 重置演示数据',
+        '订单卡片列表：状态徽标、订单号、下单时间、方案名、收货人、模块标签、物流单号、金额与操作按钮',
+        '详情抽屉：状态时间线、方案清单与计费、收货信息、发票、物流（可复制单号）、备注、下单时的校验结论、导出与打印'],
+      interaction: ['搜索防抖 240ms，支持订单号 / 手机号 / 方案名模糊匹配', '状态筛选将「已付款」与「备货中」合并为一组展示',
+        '待付款可去支付或取消；已发货可确认收货；已结束订单可一键复购（把原模块重新灌入工作台）',
+        '点击卡片任意空白区域打开详情抽屉'],
+    },
+    {
+      file: 'admin.html', name: '后台处理', role: '履约执行',
+      structure: ['口令登录门（演示口令 mosaic-admin，并说明生产环境应移到服务端）',
+        '四项 KPI（待处理 / 待发货 / 已发货 / 成交金额，含明细拆解）',
+        '三个页签：订单处理 / 库存管理 / 热度与埋点',
+        '订单表：状态筛选 chip、搜索、排序、多选与批量转备货、行内动作按钮、物流列',
+        '库存表：按库存升序排列，支持 +10 / +100 / −10 / 重置，低库存高亮',
+        '热度页：含本机加权的热度排行 + 埋点明细流水 + 数据口径说明',
+        '订单处理抽屉：状态时间线、配货清单（含当前库存）、收货与发票、支付信息、后台备注、状态流转按钮'],
+      interaction: ['状态流转严格按状态机约束，非法动作不渲染', '发货动作强制填写快递单号与快递公司，校验单号长度后落库',
+        '退款动作二次确认，执行后自动回滚库存', '批量转备货只对「已付款」订单生效，并反馈实际处理笔数',
+        '订单与库存均可导出带 BOM 的 UTF-8 CSV（含 BOM 头，Excel 打开不乱码）'],
+    },
+    {
+      file: 'docs.html', name: '需求说明书', role: '规格沉淀',
+      structure: ['左侧粘性目录（12 个章节）+ 右侧正文', '涵盖概述与设计语言、核心模块、用户画像、使用流程（含流程图）、页面结构、响应式要求、校验规则、热度模块、交易链路、支付接入、部署方案、数据模型与迭代'],
+      interaction: ['滚动时目录高亮当前章节（IntersectionObserver）', '≤1000px 时目录由侧栏变为顶部横向 chip 组',
+        '打印 / 导出 PDF 时自动隐藏导航、页脚与按钮'],
+    },
+  ];
+
+  U.$('#pagesDoc').innerHTML = PAGES.map(p => `
+    <div class="card card-pad-lg mt-16">
+      <div class="spread" style="align-items:flex-start;flex-wrap:wrap;gap:12px">
+        <div>
+          <div class="mono" style="font-size:.72rem;color:var(--accent-ink);font-weight:600">${p.file}</div>
+          <h3 style="margin:4px 0 0;font-size:1.05rem">${p.name}</h3>
+        </div>
+        <span class="tag tag-line">${p.role}</span>
+      </div>
+      <h4>页面结构</h4>
+      <ul>${p.structure.map(s => `<li>${s}</li>`).join('')}</ul>
+      <h4>交互方式</h4>
+      <ul>${p.interaction.map(s => `<li>${s}</li>`).join('')}</ul>
+    </div>`).join('');
+
+  /* ---------- 状态机表 ---------- */
+  U.$('#stateDoc').innerHTML = D.ORDER_STATES.map(s => {
+    const acts = (D.ORDER_ACTIONS[s.id] || []);
+    const actor = s.id === 'pending' ? '用户 / 后台' : (s.id === 'paid' ? '支付回调' : (['picking', 'shipped'].includes(s.id) ? '平台后台' : (s.id === 'done' ? '用户确认收货' : '用户或后台')));
+    return `<tr>
+      <td><span class="tag tag-${s.tone}"><span class="dot"></span>${s.name}</span></td>
+      <td class="mono" style="font-size:.78rem"><b>${s.id}</b><div style="color:var(--faint);font-size:.9em">${s.desc}</div></td>
+      <td>${acts.length ? acts.map(a => `<span class="tag tag-line" style="margin:2px 2px 2px 0">${a.label}${a.needTracking ? '（需单号）' : ''}</span>`).join('') : '<span class="mono" style="font-size:.78rem;color:var(--faint)">终态，无动作</span>'}</td>
+      <td style="font-size:.82rem">${actor}</td>
+    </tr>`;
+  }).join('');
+
+  /* ---------- 支付渠道 ---------- */
+  U.$('#payDoc').innerHTML = D.PAY_CHANNELS.map(c => `
+    <div class="card card-pad-lg mt-16">
+      <div class="spread" style="align-items:flex-start;flex-wrap:wrap;gap:12px">
+        <div class="row" style="gap:11px;align-items:center">
+          <span style="width:34px;height:34px;border-radius:9px;background:${c.tone};color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700;flex:none">${c.name.slice(0, 1)}</span>
+          <div>
+            <div style="font-size:.98rem;font-weight:600">${c.name} <span class="mono" style="font-size:.7rem;color:var(--faint);font-weight:400">${c.en}</span></div>
+            <div class="mono" style="font-size:.68rem;color:var(--faint)">${c.mode}</div>
+          </div>
+        </div>
+        <span class="tag ${c.id === 'mock' ? 'tag-line' : 'tag-accent'}">${c.id === 'mock' ? '无需资质' : '需商户资质'}</span>
+      </div>
+      <p class="mt-16" style="margin-bottom:0">${c.desc}</p>
+      <h4>接入步骤</h4>
+      <ol>${c.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+      <h4>需要准备的凭据</h4>
+      <div class="row row-wrap" style="gap:6px">${c.required.map(r => `<span class="tag tag-line">${r}</span>`).join('')}</div>
+    </div>`).join('');
+
+  UI.hydrateIcons();
+})();
+</script>
+</body>
+</html>

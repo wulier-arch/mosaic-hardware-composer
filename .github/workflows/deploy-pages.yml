@@ -1,0 +1,41 @@
+name: Deploy to GitHub Pages
+
+# 纯静态站点，无需构建步骤，直接把仓库根目录发布到 GitHub Pages。
+# 使用前请在仓库 Settings → Pages → Source 中选择 "GitHub Actions"。
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # 直接发布仓库根目录；.nojekyll 已存在，避免下划线开头的文件被忽略
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
