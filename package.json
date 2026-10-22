@@ -9,7 +9,12 @@
   "scripts": {
     "dev": "npx --yes serve . -l 8080",
     "start": "python3 -m http.server 8080",
-    "vercel-dev": "npx --yes vercel dev"
+    "vercel-dev": "npx --yes vercel dev",
+    "check": "node tools/check-miniprogram.js && node tools/simulate-miniprogram.js",
+    "check:mp": "node tools/check-miniprogram.js",
+    "check:sim": "node tools/simulate-miniprogram.js",
+    "check:web": "node tools/smoke-web.mjs",
+    "check:all": "node tools/check-miniprogram.js && node tools/simulate-miniprogram.js && node tools/smoke-web.mjs"
   },
   "engines": {
     "node": ">=18"

@@ -92,6 +92,22 @@ npm run dev            # 等价于 npx serve . -l 8080
 │   ├── pay/wechat/{create,notify}.js
 │   ├── pay/alipay/{create,notify}.js
 │   └── orders/index.js
+├── miniprogram/            微信小程序工程（原生，可直接导入开发者工具）
+│   ├── app.js / app.json / app.wxss
+│   ├── project.config.json / sitemap.json
+│   ├── data/modules.js     86 个模块（由 assets/js/data.js 自动生成，保证同源）
+│   ├── utils/
+│   │   ├── compat.js       校验引擎（与 core.js 同一套规则）
+│   │   ├── store.js        本地存储：方案 / 订单 / 库存 / 埋点 / 表单
+│   │   └── heat.js         选型热度（基线 × 本机行为加权）
+│   └── pages/              8 个页面：index / catalog / detail / builder /
+│                           summary / checkout / orders / mine
+├── tools/
+│   ├── check-miniprogram.js   小程序静态校验 + 数据层/引擎一致性测试
+│   ├── simulate-miniprogram.js 小程序运行时模拟（Node 模拟宿主，跑生命周期与交互）
+│   ├── smoke-web.mjs         网页版冒烟测试（headless Chromium 逐页）
+│   └── make-docx.py          HTML → 标准 OOXML 文档（含表格与标题样式）
+├── 参赛材料/               参赛说明文档（.docx）
 ├── .github/workflows/deploy-pages.yml
 ├── vercel.json             Vercel 配置
 ├── _headers / _redirects   Cloudflare Pages 配置
@@ -205,6 +221,39 @@ ALIPAY_APPID  ALIPAY_PRIVATE_KEY  ALIPAY_PUBLIC_KEY  ALIPAY_GATEWAY  ALIPAY_NOTI
 
 ---
 
+## 微信小程序版本
+
+`miniprogram/` 是同一套业务逻辑的原生小程序实现，为「与AI共生」微信小程序大赛交付，也是网页版在移动端的落地形态。
+
+| 项目 | 说明 |
+|---|---|
+| 页面 | 8 个：首页 / 模块库 / 模块详情 / 选型工作台 / 方案汇总 / 结算 / 订单 / 我的 |
+| 数据 | 86 个模块、8 大分类、订单状态机，全部由 `assets/js/data.js` 自动生成，字段与网页版逐项一致 |
+| 校验 | 与网页版同一套 9 条规则；24 个场景逐一比对，结论完全一致 |
+| 存储 | 方案草稿、订单、库存、埋点、结算表单全部落在 `wx.storage`，无后端依赖 |
+| 定位 | 纯前端演示工具：**无 `wx.request`、无 `wx.requestPayment`**，价格与库存为静态示例数据 |
+| 体积 | 218 KB（主包上限 2048 KB） |
+
+### 本地校验
+
+```bash
+node tools/check-miniprogram.js
+```
+
+覆盖三类检查，共 **61 项**：
+
+- **工程静态完整性**：页面四件套齐全、11 个 JSON 可解析、13 个 JS 语法正确、80 处 WXML 事件绑定均能在 JS 中找到、无真实支付与网络调用、包体积在限内
+- **数据层一致性**：模块总数 / 主控数 / 分类数 / ID 集合 / 每个模块的 name、cat、price、stock、req、caps 与网页版逐项比对
+- **引擎一致性**：24 个场景（覆盖 R0–R8 全部 9 条规则）同时跑小程序 `compat.js` 与网页版 `core.js`，比对 verdict、错误数、提醒数、总价、难度、工时、规则集合、资源占用
+
+### 导入方式
+
+1. 微信开发者工具 → 导入项目 → 选择 `miniprogram/` 目录
+2. AppID 填自己的小程序 AppID（未注册可先用测试号）
+3. 完整注册、类目选择、审核发布流程见 [小程序注册与发布指引.md](./小程序注册与发布指引.md)
+
+---
+
 ## 部署
 
 站点为纯静态产物，所有资源路径均为相对路径，可直接托管在任意静态服务上。
@@ -241,6 +290,15 @@ ALIPAY_APPID  ALIPAY_PRIVATE_KEY  ALIPAY_PUBLIC_KEY  ALIPAY_GATEWAY  ALIPAY_NOTI
 - **端到端交易链路**：下单 → 支付 → 状态流转 → 库存扣减 → 前台同步，全链路断言通过
 - **UI 交互链路 21/21**：真实点击/输入事件驱动加购、工作台调整、表单校验拦截、提交下单、渠道切换、模拟回调、后台登录与发货
 - **响应式审计 42/42**：10 个页面 × 4 个断点均无横向溢出，窄屏导航折叠与工作台页签切换正常
+- **小程序静态校验 61/61**：工程完整性 + 数据层一致性 + 24 个场景的引擎一致性
+- **小程序运行时模拟 18/18**：8 个页面的生命周期与 80+ 次交互在模拟宿主中真实执行，无异常
+- **网页冒烟 11/11**：本地静态服务 + headless Chromium 逐页加载，控制台零错误、无横向溢出
+
+复跑全部检查：
+
+```bash
+npm run check:all
+```
 
 ---
 
